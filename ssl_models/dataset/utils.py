@@ -1,0 +1,110 @@
+"""Utils module."""
+
+from datetime import datetime
+from pathlib import Path
+from typing import Literal
+
+import numpy as np
+import pandas as pd
+
+
+def dates_numpy(dates: list[datetime]) -> np.ndarray:
+    """Convert list of dates to (year, day of year, hour) numpy array."""
+    return np.array(
+        [[date.year, date.timetuple().tm_yday, date.hour] for date in dates],
+        dtype=np.int16,
+    )
+
+
+def strs_datetimes(date_strs: list[str], fmt: str = "%Y-%m-%d") -> np.ndarray:
+    """Convert list of strs to list of datetimes."""
+    date_strs = [
+        date_str[:-2] + "01" if date_str[-2:] == "00" else date_str
+        for date_str in date_strs
+    ]
+    datetimes = [datetime.strptime(date_str, fmt) for date_str in date_strs]  # noqa: DTZ007
+    return dates_numpy(datetimes)
+
+
+def products_datetimes(products: list[str] | list[bytes], idx: int) -> np.ndarray:
+    """Convert list of products to list of datetimes."""
+    if isinstance(products[0], str):
+        datetimes = [
+            datetime.strptime(  # noqa: DTZ007
+                product.split("_")[-idx][:8],
+                "%Y%m%d",
+            )
+            for product in products
+        ]
+    else:
+        datetimes = [
+            datetime.strptime(  # noqa: DTZ007
+                product.decode().split("_")[-idx][:8],
+                "%Y%m%d",
+            )
+            for product in products
+        ]
+    return dates_numpy(datetimes)
+
+
+def dict_datetimes(datetime_dict: dict, start: int = 0) -> np.ndarray:
+    """Convert list of datetime strings to list of datetimes."""
+    datetimes = [
+        datetime.strptime(  # noqa: DTZ007
+            str(datetime_dict[str(idx)]),
+            "%Y%m%d",
+        )
+        for idx in range(start, len(datetime_dict) + start)
+    ]
+    return dates_numpy(datetimes)
+
+
+def read_csv(
+    csv_dir: Path,
+    stage: Literal["train", "val", "test"],
+    ssl_phase: Literal["pretrain", "probe", "finetune"],
+    version: str | None = None,
+    balance_pretrain: bool = False,
+    val_pretrain: bool = False,
+    filter_percent: int | None = None,
+    fold: int | None = None,
+    **kwargs,  # noqa: ANN003
+) -> Path:
+    """Read dataset csv."""
+    csv_name = []
+    if version:
+        csv_name += [version]
+    if balance_pretrain and ssl_phase == "pretrain":
+        csv_name += ["balanced"]
+    if filter_percent:
+        csv_name += [f"filtered_{filter_percent}"]
+    if fold:
+        csv_name += [f"fold_{fold}"]
+
+    stages = (
+        ["train", "val"]
+        if stage == "train" and ssl_phase == "pretrain" and val_pretrain
+        else [stage]
+    )
+    return pd.concat(
+        [
+            pd.read_csv(csv_dir / f"{'_'.join([stage, *csv_name])}.csv", **kwargs)
+            for stage in stages
+        ],
+    )
+
+
+def cloud_mask_correction(input_mask: np.ndarray, threshold: int = 50) -> np.ndarray:
+    """Corrects cloud masks by identifying and removing inconsistent pixels based on temporal statistics."""  # noqa: E501
+
+    def compute_persistence_mask(array: np.ndarray) -> np.ndarray:
+        """Binarizes the input array (non-zero values become 1) and sums along the time axis."""  # noqa: E501
+        binary_array = (array != 0).astype(int)  # Binarization
+        return binary_array.sum(axis=0)
+
+    cloud_masks = input_mask.copy()
+    persistence_mask = compute_persistence_mask(cloud_masks)  # Temporal stationarity
+    pixel_threshold = np.percentile(persistence_mask, threshold)
+    error_indexes = np.where(persistence_mask > pixel_threshold)
+    cloud_masks[:, error_indexes[0], error_indexes[1]] = 0
+    return np.stack(cloud_masks, axis=0)

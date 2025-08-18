@@ -41,7 +41,7 @@ class BaseMIM(nn.Module, ABC):
         self,
         datasets: DatasetsConfig,
         multimodal: Literal["msgfm", "shared", "monotemp", "mod", "group"],
-        model: Literal["mae"],
+        model: Literal["mae"],  # noqa: ARG002
         num_levels: Literal[1, 3, 4],
         unpool_dim: int | None,
         embed_dim: int,

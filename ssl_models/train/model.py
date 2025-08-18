@@ -18,7 +18,7 @@ NDIM_RASTER = 5  # (batch, dates, channels, height, width)
 class SSLModule(BaseModule):
     """SSL module."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         # shared args
         datasets: DatasetsConfig,

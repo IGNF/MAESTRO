@@ -52,24 +52,24 @@ We introduce **MAESTRO**, a tailored adaptation of the Masked Autoencoder (MAE) 
 
 
 ### Datasets
-Our implementation already supports 4 datasets:  
+Our implementation already supports 4 datasets:
 
-**[TreeSatAI-TS](https://huggingface.co/datasets/IGNF/TreeSatAI-Time-Series)**  
+**[TreeSatAI-TS](https://huggingface.co/datasets/IGNF/TreeSatAI-Time-Series)**
 Tree species identification, with 15 multi-label classes.
   - Extent: 50,381 tiles of 60 × 60 m in Germany.
   - Modalities: aerial imagery RGB + NIR (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
 
-**[PASTIS-HD](https://huggingface.co/datasets/IGNF/PASTIS-HD)**  
-Agricultural crop segmentation, with 19 semantic classes. 
+**[PASTIS-HD](https://huggingface.co/datasets/IGNF/PASTIS-HD)**
+Agricultural crop segmentation, with 19 semantic classes.
   - Extent: 433 tiles of 1280 × 1280 m in France.
   - Modalities: VHR satellite imagery SPOT 6-7 (1 m), Sentinel-1 time series, Sentinel-2 time series.
 
-**[FLAIR#2](https://arxiv.org/abs/2305.14467)**  
+**[FLAIR#2](https://arxiv.org/abs/2305.14467)**
 Land cover segmentation, with 12 semantic classes.
   - Extent: 77,762 tiles of 102.4 × 102.4 m in France.
   - Modalities: Aerial and elevation imagery RGB + NIR + DEM + DSM (0.2 m), Sentinel-2 time series.
 
-**[FLAIR-HUB](https://huggingface.co/datasets/IGNF/FLAIR-HUB)**  
+**[FLAIR-HUB](https://huggingface.co/datasets/IGNF/FLAIR-HUB)**
 Land cover segmentation, with 15 semantic classes.
   - Extent: 241,100 tiles of 102.4 × 102.4 m in France.
   - Modalities: Aerial and elevation imagery RGB + NIR + DEM +
@@ -135,7 +135,7 @@ Most hyperparameters can be adapted through the hydra-zen CLI.
 ## Contact
 
 For questions or contributions, please open an issue or contact the authors.
- 
+
 
 ## Reference
 
@@ -153,4 +153,3 @@ If you use this code, kindly cite:
 ## Acknowledgement
 
 The experiments in the paper were conducted using HPC/AI resources from GENCI-IDRIS (allocations A0181013803, A0161013803, and AD010114597R1).
-

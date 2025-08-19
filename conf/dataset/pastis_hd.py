@@ -9,7 +9,7 @@ from conf.dataset.utils import (
     TargetConfig,
     TargetRasterConfig,
 )
-from ssl_models.dataset.pastis_hd import PASTISHDDataset
+from maestro.dataset.pastis_hd import PASTISHDDataset
 
 
 @dataclass

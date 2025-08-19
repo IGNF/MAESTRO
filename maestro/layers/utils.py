@@ -8,7 +8,7 @@ import torch
 from sympy.ntheory import factorint
 from torch import Tensor
 
-from ssl_models import RNG
+from maestro import RNG
 
 
 def shuffle_enc_to_dec(x: dict[str, Tensor]) -> dict[str, Tensor]:

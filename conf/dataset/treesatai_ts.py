@@ -8,7 +8,7 @@ from conf.dataset.utils import (
     PatchSizeConfig,
     TargetConfig,
 )
-from ssl_models.dataset.treesatai_ts import TreeSatAITSDataset
+from maestro.dataset.treesatai_ts import TreeSatAITSDataset
 
 
 @dataclass

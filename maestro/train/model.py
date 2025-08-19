@@ -7,8 +7,8 @@ import torch
 
 from conf.datasets import DatasetsConfig
 from conf.mask import MaskConfig
-from ssl_models.ssl.mae import MAE, mae_large, mae_medium, mae_small, mae_tiny
-from ssl_models.train.base import BaseModule
+from maestro.ssl.mae import MAE, mae_large, mae_medium, mae_small, mae_tiny
+from maestro.train.base import BaseModule
 
 torch.set_float32_matmul_precision(precision="medium")
 

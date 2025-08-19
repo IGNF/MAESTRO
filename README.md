@@ -1,21 +1,22 @@
 # MAESTRO: Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data
 
 ## Abstract
+
 We introduce **MAESTRO**, a tailored adaptation of the Masked Autoencoder (MAE) framework that effectively orchestrates the use of multimodal, multitemporal, and multispectral Earth Observation (EO) data. Evaluated on four EO datasets, MAESTRO sets a new state-of-the-art on tasks that strongly rely on multitemporal dynamics, while remaining highly competitive on others.
 
 <p align="center">
-  <img src="img/Maestro_Overview.png" alt="MAESTRO Overview" width="750"/><br>
+  <img src="media/Maestro_Overview.png" alt="MAESTRO Overview" width="750"/><br>
   <em>Figure 1 — MAESTRO overview.</em>
 </p>
 
-## Contributions
+## Paper Contributions
 
 - **Extensive Benchmarking of Multimodal/Multitemporal SSL:** Impact evaluation of various fusion strategies for multimodal and multitemporal SSL.
 - **Novel Patch-group-wise Normalization:** Novel normalization scheme that normalizes reconstruction targets patch-wise within groups of highly correlated spectral bands.
 - **MAESTRO:** Novel adaptation of the MAE that combines optimized fusion strategies with our tailored patch-group-wise normalization.
 
 <p align="center">
-  <img src="img/Maestro_Fusion.png" alt="MAESTRO fusion modes" width="750"/><br>
+  <img src="media/Maestro_Fusion.png" alt="MAESTRO fusion modes" width="750"/><br>
   <em>Figure 2 — Token-based fusion modes benchmarked for multimodal and multitemporal SSL.</em>
 </p>
 
@@ -46,30 +47,29 @@ We introduce **MAESTRO**, a tailored adaptation of the Masked Autoencoder (MAE) 
 | ViT                | Base  | inter-group   | 75.6         | 64.5      | 58.2    | **62.1**  |
 | **Previous SOTA**  |       |               |              |           |         |           |
 |                    |       |               | 75.1         | 66.5      | 64.1    | 64.3  |
-
 </p>
 
 
 
-### Datasets
-Our implementation already supports 4 datasets:
+## Datasets
+Our implementation already supports 4 datasets.
 
-**[TreeSatAI-TS](https://huggingface.co/datasets/IGNF/TreeSatAI-Time-Series)**
+**[TreeSatAI-TS](https://huggingface.co/datasets/IGNF/TreeSatAI-Time-Series)**<br />
 Tree species identification, with 15 multi-label classes.
   - Extent: 50,381 tiles of 60 × 60 m in Germany.
   - Modalities: aerial imagery RGB + NIR (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
 
-**[PASTIS-HD](https://huggingface.co/datasets/IGNF/PASTIS-HD)**
+**[PASTIS-HD](https://huggingface.co/datasets/IGNF/PASTIS-HD)**<br />
 Agricultural crop segmentation, with 19 semantic classes.
   - Extent: 433 tiles of 1280 × 1280 m in France.
   - Modalities: VHR satellite imagery SPOT 6-7 (1 m), Sentinel-1 time series, Sentinel-2 time series.
 
-**[FLAIR#2](https://arxiv.org/abs/2305.14467)**
+**[FLAIR#2](https://arxiv.org/abs/2305.14467)**<br />
 Land cover segmentation, with 12 semantic classes.
   - Extent: 77,762 tiles of 102.4 × 102.4 m in France.
   - Modalities: Aerial and elevation imagery RGB + NIR + DEM + DSM (0.2 m), Sentinel-2 time series.
 
-**[FLAIR-HUB](https://huggingface.co/datasets/IGNF/FLAIR-HUB)**
+**[FLAIR-HUB](https://huggingface.co/datasets/IGNF/FLAIR-HUB)**<br />
 Land cover segmentation, with 15 semantic classes.
   - Extent: 241,100 tiles of 102.4 × 102.4 m in France.
   - Modalities: Aerial and elevation imagery RGB + NIR + DEM +
@@ -77,7 +77,15 @@ DSM (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
 
 Note that our version of FLAIR#2 is not the original release but a regenerated version derived through the refiltering of FLAIR-HUB.
 
-## Getting Started
+## 📝 Preliminary Note (August 2025)
+
+On 2025-08-19 the repository history was cleaned to remove large files.
+If you previously cloned the repo, please reclone to avoid conflicts.
+
+## 🚀 Getting Started
+
+First, set up the module with [Poetry](https://python-poetry.org/).
+
 ```bash
 # 1. Change directory
 cd MAESTRO
@@ -86,9 +94,7 @@ cd MAESTRO
 poetry install
 ```
 
-### Minimal examples
-
-You can start from the following minimal examples:
+Then, you can start from the following minimal examples.
 
 On TreeSatAI-TS:
 ```bash

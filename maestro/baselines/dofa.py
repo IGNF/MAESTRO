@@ -15,8 +15,8 @@ from torch.nn import Identity, Module, ModuleDict, Parameter, ParameterDict, ini
 from torchgeo.models import DOFABase16_Weights, DOFALarge16_Weights
 
 from conf.datasets import DatasetsConfig
-from ssl_models.baselines.base import BaseModule
-from ssl_models.baselines.utils import filter_dict, interpolate_pos_encoding
+from maestro.baselines.base import BaseModule
+from maestro.baselines.utils import filter_dict, interpolate_pos_encoding
 
 
 class DOFABaseline(BaseModule, ABC):

@@ -14,7 +14,7 @@ from torch import Tensor, einsum, nn
 from torch.nn import Module
 
 from conf.datasets import DatasetsConfig
-from ssl_models.baselines.base import BaseModule
+from maestro.baselines.base import BaseModule
 
 
 class CROMABaseline(BaseModule):

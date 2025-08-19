@@ -8,7 +8,7 @@ import torch
 from einops import rearrange
 from torch import Tensor, nn
 
-from ssl_models.layers.embed import PixelifyBands
+from maestro.layers.embed import PixelifyBands
 
 
 class Head(nn.Module, ABC):

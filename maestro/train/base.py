@@ -10,7 +10,7 @@ from torch.nn import Module
 from torch.nn import functional as F  # noqa: N812
 
 from conf.datasets import DatasetsConfig
-from ssl_models.ssl.mae import MAE
+from maestro.ssl.mae import MAE
 
 NDIM_RASTER = 5  # (batch, dates, channels, height, width)
 

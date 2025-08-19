@@ -15,8 +15,8 @@ import conf.model
 import conf.opt
 import conf.run
 import conf.trainer  # noqa: F401
-from ssl_models.hydra_utils import pre_call_resolve, pre_call_seed
-from ssl_models.run_experiment import run_experiment
+from maestro.hydra_utils import pre_call_resolve, pre_call_seed
+from maestro.run_experiment import run_experiment
 
 # %%
 if __name__ == "__main__":

@@ -11,11 +11,11 @@ from conf.model import BaselineConfig, ModelConfig
 from conf.opt import OptFinetuneConfig, OptPretrainConfig, OptProbeConfig
 from conf.run import RunConfig
 from conf.trainer import TrainerConfig
-from ssl_models import LOGGER
-from ssl_models.train.baseline import BaselineModule
-from ssl_models.train.data import SSLDataModule
-from ssl_models.train.model import SSLModule
-from ssl_models.train.trainer import SSLTrainer
+from maestro import LOGGER
+from maestro.train.baseline import BaselineModule
+from maestro.train.data import SSLDataModule
+from maestro.train.model import SSLModule
+from maestro.train.trainer import SSLTrainer
 
 
 def run_experiment(

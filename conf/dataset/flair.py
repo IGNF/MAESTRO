@@ -8,7 +8,7 @@ from conf.dataset.utils import (
     PatchSizeConfig,
     TargetRasterConfig,
 )
-from ssl_models.dataset.flair import FLAIRDataset
+from maestro.dataset.flair import FLAIRDataset
 
 
 @dataclass

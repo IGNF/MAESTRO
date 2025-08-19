@@ -2,7 +2,7 @@
 
 from hydra_zen import MISSING, builds, store
 
-from ssl_models.run_experiment import run_experiment
+from maestro.run_experiment import run_experiment
 
 Experiment = builds(
     run_experiment,

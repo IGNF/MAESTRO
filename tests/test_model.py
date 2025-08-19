@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from ssl_models.train.model import SSLModule
+from maestro.train.model import SSLModule
 
 
 @pytest.mark.parametrize(

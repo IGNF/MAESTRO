@@ -4,7 +4,7 @@ import torch
 from einops import rearrange, repeat
 from torch import Tensor, nn
 
-from ssl_models.layers.utils import downsamplings_from_patch_size
+from maestro.layers.utils import downsamplings_from_patch_size
 
 
 class Patchify(nn.Module):

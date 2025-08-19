@@ -2,8 +2,8 @@ import itertools
 
 import pytest
 
-from ssl_models import LOGGER
-from ssl_models.train.data import SSLDataModule
+from maestro import LOGGER
+from maestro.train.data import SSLDataModule
 
 
 @pytest.mark.parametrize(

@@ -3,7 +3,7 @@ import itertools
 import pytest
 import torch
 
-from ssl_models.ssl.mae import mae_large, mae_medium, mae_small, mae_tiny
+from maestro.ssl.mae import mae_large, mae_medium, mae_small, mae_tiny
 
 
 @pytest.fixture()

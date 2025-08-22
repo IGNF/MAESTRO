@@ -1,4 +1,14 @@
-# MAESTRO: Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data
+<h1 align="center"> MAESTRO: Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data <a href="https://arxiv.org/abs/2508.10894"><img src="https://img.shields.io/badge/arXiv-Paper-<color>"></a></h1>
+<h4 align="center">Official implementation for <a href="https://arxiv.org/abs/2508.10894">Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data</a></h4>
+<p align="center">
+  <a href="#abstract">Abstract</a> |
+  <a href="#contributions">Contributions</a> |
+  <a href="#results">Results</a> |
+  <a href="#datasets">Datasets</a> |
+  <a href="#-getting-started">Getting Started</a>
+</p>
+
+
 
 ## Abstract
 
@@ -9,7 +19,7 @@ We introduce **MAESTRO**, a tailored adaptation of the Masked Autoencoder (MAE) 
   <em>Figure 1 — MAESTRO overview.</em>
 </p>
 
-## Paper Contributions
+## Contributions
 
 - **Extensive Benchmarking of Multimodal/Multitemporal SSL:** Impact evaluation of various fusion strategies for multimodal and multitemporal SSL.
 - **Novel Patch-group-wise Normalization:** Novel normalization scheme that normalizes reconstruction targets patch-wise within groups of highly correlated spectral bands.

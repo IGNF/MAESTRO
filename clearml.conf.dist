@@ -6,7 +6,7 @@ api {
     files_server: https://clearml.example.com:8081
     # Credentials are generated using the webapp,
     # Override with os environment: CLEARML_API_ACCESS_KEY / CLEARML_API_SECRET_KEY
-    credentials {"access_key": ${CLEARML_API_ACCESS_KEY}, "secret_key": ${CLEARML_API_SECRET_KEY}}
+    credentials {"access_key": "", "secret_key": ""}
     http {"default_method": "POST"}
     verify_certificate = False
 }

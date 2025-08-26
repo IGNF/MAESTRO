@@ -9,7 +9,6 @@ ALLOWED_TARGETS = [
     "classif",
     "multilabel_classif",
     "segment",
-    "change_detect",
 ]
 
 

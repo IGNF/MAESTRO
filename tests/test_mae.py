@@ -17,20 +17,19 @@ def model_map():
 
 
 @pytest.mark.parametrize(
-    "model_size, multimodal",
+    "model_size, fusion_mode",
     itertools.product(
         ("tiny",),
         ("shared", "monotemp", "mod", "group"),
     ),
 )
-def test_mae(datasets_treesat, mask, model_map, model_size, multimodal):
+def test_mae(datasets_treesat, mask, model_map, model_size, fusion_mode):
     model_args = {
         "datasets": datasets_treesat,
         "mask": mask,
-        "multimodal": multimodal,
+        "fusion_mode": fusion_mode,
         "model": "mae",
-        "allmods_depth": 0,
-        "unpool_dim": None,
+        "inter_depth": 0,
         "num_levels": 1,
         "type_head": "attentive",
         "loss_fn": torch.abs,
@@ -60,10 +59,9 @@ def test_mae_loss(
     model_args = {
         "datasets": datasets_treesat,
         "mask": mask,
-        "multimodal": "group",
+        "fusion_mode": "group",
         "model": "mae",
-        "allmods_depth": 0,
-        "unpool_dim": None,
+        "inter_depth": 0,
         "num_levels": 1,
         "type_head": "attentive",
         "loss_fn": loss_fn,
@@ -95,10 +93,9 @@ def test_mae_architecture(
     model_args = {
         "datasets": datasets_treesat,
         "mask": mask,
-        "multimodal": "group",
+        "fusion_mode": "group",
         "model": "mae",
-        "allmods_depth": 0,
-        "unpool_dim": None,
+        "inter_depth": 0,
         "num_levels": 1,
         "type_head": type_head,
         "loss_fn": torch.square,

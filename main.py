@@ -1,6 +1,6 @@
-"""Command line interface to run SSL pretraining.
+"""Command line interface to run experiments.
 
-From the project root directory, do:
+From the project root directory, run:
 
     poetry run python main.py group.field=value
 """

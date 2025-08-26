@@ -24,10 +24,9 @@ class CROMABaseline(BaseModule):
         self,
         datasets: DatasetsConfig,
         backbone_size: str,
-        unpool_dim: int,
         freeze: bool = False,
         type_head: Literal["linear", "attentive"] = "linear",
-        multimodal: Literal["monotemp", "croma-intergroup"] = "monotemp",
+        fusion_mode: Literal["monotemp", "croma-intergroup"] = "monotemp",
         pretrained_path: str | None = None,
         add_date_enc: bool = False,
         fac_date_enc: float = 1.0,
@@ -43,14 +42,12 @@ class CROMABaseline(BaseModule):
             The dataset config used in the probing/finetuning phase.
         backbone_size: str
             Defines the backbone to use. To choose in "small", "base", "large", "huge".
-        unpool_dim: int
-            Parameter given to the pixelify head.
         freeze: bool
             To freeze or not to freeze the DinoV2 backbone.
         type_head: str
            Segmentation head to use. Either "linear" (default) or "attentive".
-        multimodal: str
-           Multimodal strategy. Either "monotemp" (default) or "croma-intergroup".
+        fusion_mode: str
+           Fusion strategy. Either "monotemp" (default) or "croma-intergroup".
         pretrained_path: str
            Path to the location of the pretrained weights.
         add_date_enc: bool
@@ -69,9 +66,8 @@ class CROMABaseline(BaseModule):
         self.backbone_size = backbone_size
         self.freeze = freeze
         self.type_head = type_head
-        self.multimodal = multimodal
+        self.fusion_mode = fusion_mode
 
-        self.unpool_dim = unpool_dim
         self.pretrained_path = pretrained_path
         self.add_date_enc = add_date_enc
         self.fac_date_enc = fac_date_enc
@@ -94,9 +90,8 @@ class CROMABaseline(BaseModule):
             datasets,
             self.patch_size,
             self.encoder_dim,
-            self.unpool_dim,
             self.type_head,
-            self.multimodal,
+            self.fusion_mode,
             self.add_date_enc,
             self.fac_date_enc,
             self.date_dim,
@@ -111,7 +106,7 @@ class CROMABaseline(BaseModule):
         if self.freeze:
             self.freeze_backbone()
 
-        if self.multimodal == "croma-intergroup":
+        if self.fusion_mode == "croma-intergroup":
             modalities = self.dataset.inputs.keys()
             ref_mod = "s2" if "s2" in modalities else "s1_asc"
             self.num_dates["joint"] = self.num_dates[ref_mod]
@@ -289,7 +284,7 @@ class CROMABaseline(BaseModule):
             s1_outputs = output_croma["SAR_encodings"]
             x["s1_asc"], x["s1_des"] = self._ungroup_s1(s1_outputs)
 
-        if self.multimodal == "croma-intergroup":
+        if self.fusion_mode == "croma-intergroup":
             x["joint"] = output_croma["joint_encodings"]
 
         if self.add_date_enc:

@@ -13,8 +13,6 @@ from maestro.train.base import BaseModule
 
 torch.set_float32_matmul_precision(precision="medium")
 
-NDIM_RASTER = 5  # (batch, dates, channels, height, width)
-
 
 class BaselineModule(BaseModule):
     """Baseline module for fine-tuning."""
@@ -31,7 +29,7 @@ class BaselineModule(BaseModule):
         pretrained_path: str | None = None,
         freeze: bool = False,
         use_ema: bool = False,
-        multimodal: Literal["shared", "monotemp", "croma-intergroup"] = "shared",
+        fusion_mode: Literal["shared", "monotemp", "croma-intergroup"] = "shared",
         keep_norm: bool = True,
         add_date_enc: bool = True,
     ) -> None:
@@ -39,8 +37,6 @@ class BaselineModule(BaseModule):
 
         match model:
             case "dinov2":
-                unpool_dim = None
-
                 if len(datasets.filter_finetune) > 1:
                     msg = "Too many datasets given."
                     raise NotImplementedError(msg)
@@ -49,11 +45,10 @@ class BaselineModule(BaseModule):
                     "datasets": datasets,
                     "type_head": type_head,
                     "backbone_size": model_size,
-                    "unpool_dim": unpool_dim,
                     "weight_source": weight_source,
                     "pretrained_path": pretrained_path,
                     "freeze": freeze,
-                    "multimodal": multimodal,
+                    "fusion_mode": fusion_mode,
                     "keep_norm": keep_norm,
                     "add_date_enc": add_date_enc,
                 }
@@ -61,8 +56,6 @@ class BaselineModule(BaseModule):
                 self.model = Dinov2Baseline(**model_args)
 
             case "dofa" | "croma":
-                unpool_dim = None
-
                 if len(datasets.filter_finetune) > 1:
                     msg = "Too many datasets given."
                     raise NotImplementedError(msg)
@@ -71,10 +64,9 @@ class BaselineModule(BaseModule):
                     "datasets": datasets,
                     "type_head": type_head,
                     "backbone_size": model_size,
-                    "unpool_dim": unpool_dim,
                     "freeze": freeze,
                     "pretrained_path": pretrained_path,
-                    "multimodal": multimodal,
+                    "fusion_mode": fusion_mode,
                     "keep_norm": keep_norm,
                     "add_date_enc": add_date_enc,
                 }
@@ -105,7 +97,7 @@ class BaselineModule(BaseModule):
             * self.trainer.accumulate_grad_batches
             * self.trainer.num_nodes
             * self.trainer.num_devices
-            / 3.0  # remain iso with existing runs on Jean Zellou
+            / 3.0  # remain iso with past runs
         )
 
         lr = (

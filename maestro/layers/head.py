@@ -100,7 +100,6 @@ class PixelifyHead(PixelifyBands, Head):
         self,
         type_head: Literal["mean", "attentive"],
         dim: int,
-        unpool_dim: int | None,
         out_chans: int,
         patch_size: int,
         heads: int = 8,
@@ -109,8 +108,8 @@ class PixelifyHead(PixelifyBands, Head):
             embed_dim=dim,
             out_chans=out_chans,
             patch_size=patch_size,
-            unpool_dim=unpool_dim,
         )
+
         match type_head:
             case "linear":
                 self.reduce = partial(torch.mean, dim=1)
@@ -128,5 +127,4 @@ class PixelifyHead(PixelifyBands, Head):
         out = rearrange(out, "(b l) c -> b 1 l c", l=x.shape[2])
         return super().forward(  # method used is from the first listed inherited class
             out,
-            inds=[],
         )

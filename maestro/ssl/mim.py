@@ -15,11 +15,10 @@ from conf.dataset.utils import RasterConfig
 from conf.datasets import DatasetsConfig
 from maestro.layers.embed import Patchify, Pixelify
 from maestro.layers.head import ClassificationHead, PixelifyHead
-from maestro.layers.mask import (
-    create_masked_image,
-    get_cd_mask_from_logits,
-    get_segment_mask_from_logits,
-    get_target_mask_from_batch,
+from maestro.layers.overlay import (
+    create_overlay,
+    onehot_pred_from_logits,
+    onehot_target_from_batch,
 )
 from maestro.layers.utils import (
     encode_dates,
@@ -40,10 +39,9 @@ class BaseMIM(nn.Module, ABC):
     def __init__(  # noqa: C901
         self,
         datasets: DatasetsConfig,
-        multimodal: Literal["msgfm", "shared", "monotemp", "mod", "group"],
+        fusion_mode: Literal["msgfm", "shared", "monotemp", "mod", "group"],
         model: Literal["mae"],  # noqa: ARG002
-        num_levels: Literal[1, 3, 4],
-        unpool_dim: int | None,
+        num_levels: Literal[1],
         embed_dim: int,
         decoder_dim: int,
         type_head: Literal["linear", "attentive"] = "linear",
@@ -88,13 +86,11 @@ class BaseMIM(nn.Module, ABC):
                 mod.bands,
                 embed_dim,
                 patch_size,
-                unpool_dim,
             )
             self.embed_to_rec[name_mod] = Pixelify(
                 decoder_dim,
                 mod.bands,
                 patch_size * self.stride,
-                unpool_dim,
             )
 
         # Fix the position encodings to sine & cosine functions
@@ -123,7 +119,7 @@ class BaseMIM(nn.Module, ABC):
             ).float(),
             persistent=False,
         )
-        # Freeze the weights of position encoding
+        # Freeze weights of positional encoding
         self.enc_pos_encoding = self.enc_pos_encoding.requires_grad_(
             requires_grad=False,
         )
@@ -158,12 +154,12 @@ class BaseMIM(nn.Module, ABC):
         # flattening/unflattening of date dimensions
         self.group = partial(
             group_mods,
-            multimodal=multimodal,
+            fusion_mode=fusion_mode,
             groups=self.dataset.groups,
         )
         self.ungroup = partial(
             ungroup_mods,
-            multimodal=multimodal,
+            fusion_mode=fusion_mode,
             groups=self.dataset.groups,
             num_dates={
                 name_mod: mod.num_dates * self.len_bands[name_mod]
@@ -173,7 +169,7 @@ class BaseMIM(nn.Module, ABC):
         )
 
         # shuffling of modalities
-        self.shuffle_mods = multimodal == "msgfm"
+        self.shuffle_mods = fusion_mode == "msgfm"
 
         # mask tokens
         self.mask_token = nn.ParameterDict(
@@ -205,7 +201,6 @@ class BaseMIM(nn.Module, ABC):
                 self.heads[name_target] = PixelifyHead(
                     type_head,
                     embed_dim * self.stride,
-                    unpool_dim,
                     target.num_classes,
                     target_image_size // ref_grid_size,
                 )
@@ -222,13 +217,6 @@ class BaseMIM(nn.Module, ABC):
             match target.type_target:
                 case "classif" | "segment":
                     self.loss_pred[name_target] = F.cross_entropy
-                    metric_partial = partial(
-                        MonoLabelMetric,
-                        type_target=target.type_target,
-                        num_classes=target.num_classes,
-                    )
-                case "change_detect":
-                    self.loss_pred[name_target] = F.binary_cross_entropy_with_logits
                     metric_partial = partial(
                         MonoLabelMetric,
                         type_target=target.type_target,
@@ -255,14 +243,13 @@ class BaseMIM(nn.Module, ABC):
     ) -> tuple[
         dict[str, Tensor],
         dict[str, Tensor],
-        dict[str, list[Tensor]],
         dict[str, Tensor],
         Tensor,
     ]:
         """Embed patches and fetch dates."""
-        x_enc, embed_inds, mask_token, dates = {}, {}, {}, {}
+        x_enc, mask_token, dates = {}, {}, {}
         for name_mod in self.dataset.inputs:
-            x_enc[name_mod], embed_inds[name_mod] = self.patch_embed[name_mod](
+            x_enc[name_mod] = self.patch_embed[name_mod](
                 batch[name_mod],
             )
             B = x_enc[name_mod].shape[0]  # noqa: N806
@@ -278,7 +265,6 @@ class BaseMIM(nn.Module, ABC):
         return (
             self.group(x_enc),
             self.group(mask_token),
-            embed_inds,
             dates,
             batch["ref_date"],
         )
@@ -338,7 +324,7 @@ class BaseMIM(nn.Module, ABC):
         dict[str, Tensor | None],
         dict[str, Tensor | None],
     ]:
-        """Mask multimodal."""
+        """Mask."""
         if ssl_phase == "pretrain":
             mask_rec = self.mask_struct(x)
 
@@ -367,7 +353,7 @@ class BaseMIM(nn.Module, ABC):
         mask: dict[str, Tensor],
         mask_rec: dict[str, Tensor],
     ) -> dict[str, Tensor]:
-        """Unmask multimodal."""
+        """Unmask."""
         x_dec = {}
         for name_group in x:
             x_dec[name_group] = self.unmask_seq(
@@ -392,7 +378,6 @@ class BaseMIM(nn.Module, ABC):
     def rec_pixels(
         self,
         x_dec: dict[str, Tensor],
-        embed_inds: dict[str, list[Tensor]],
         mask_rec: dict[str, Tensor],
     ) -> tuple[dict[str, Tensor], dict[str, Tensor]]:
         """Reconstruct pixels from embeddings."""
@@ -403,7 +388,6 @@ class BaseMIM(nn.Module, ABC):
             pixels_rec[name_mod], mask_rec[name_mod] = self.embed_to_rec[name_mod](
                 x_dec[name_mod],
                 mask_rec[name_mod],
-                embed_inds[name_mod],
             )
         return pixels_rec, mask_rec
 
@@ -493,7 +477,7 @@ class BaseMIM(nn.Module, ABC):
 
         return torch.stack(losses_rec).sum() / sum(weights)
 
-    def compute_loss_pred(  # noqa: PLR0915
+    def compute_loss_pred(
         self,
         x_enc: dict[str, Tensor],
         batch: dict[str, Tensor],
@@ -537,59 +521,39 @@ class BaseMIM(nn.Module, ABC):
         log_inputs, log_preds, log_targets = {}, {}, {}
         for name_target, target in self.dataset.targets.items():
             targets = batch[name_target]
-            # image logger
-            if target.type_target in ("segment", "change_detect"):
-                input_keys = (x for x in self.dataset.log_inputs if x in batch)
-                input_img = batch[next(input_keys)][
-                    0,
-                    0,
-                ][:RGB_BANDS]
-                target_msk = get_target_mask_from_batch(
+            if target.type_target == "segment":
+                overlay_key = next(x for x in self.dataset.log_inputs if x in batch)
+                overlay_img = batch[overlay_key][0, 0, :RGB_BANDS]
+                onehot_target = onehot_target_from_batch(
                     batch[name_target][0, 0, 0],
                     target.num_classes,
                     target.missing_val,
                 )
-                log_inputs[f"{ssl_phase}_{name_target}_{stage}/_input"] = input_img
+                log_inputs[f"{ssl_phase}_{name_target}_{stage}/_input"] = overlay_img
                 log_targets[f"{ssl_phase}_{name_target}_{stage}/_target"] = (
-                    create_masked_image(
-                        input_img,
-                        target_msk,
+                    create_overlay(
+                        overlay_img,
+                        onehot_target,
                         target.num_classes,
                     )
                 )
             match target.type_target:
                 case "segment":
                     logits = self.heads[name_target](x_ref, ssl_phase)
-                    # image_logger
-                    pred_msk = get_segment_mask_from_logits(
+                    onehot_pred = onehot_pred_from_logits(
                         logits[0, 0],
                         target.num_classes,
                     )
                     log_preds[f"{ssl_phase}_{name_target}_{stage}/_pred"] = (
-                        create_masked_image(
-                            input_img,
-                            pred_msk,
+                        create_overlay(
+                            overlay_img,
+                            onehot_pred,
                             target.num_classes,
                         )
                     )
                     logits = rearrange(logits, "b 1 c h w -> (b h w) c")
                     targets = rearrange(targets, "b 1 1 h w -> (b h w)")
                     targets = targets.long()
-                case "change_detect":
-                    logits = self.heads[name_target](x_ref, ssl_phase)
-                    # image logger
-                    input_img = batch[next(input_keys)][0, 0][:RGB_BANDS]
-                    pred_msk = get_cd_mask_from_logits(logits)
-                    log_preds[f"{ssl_phase}_{name_target}_{stage}/_pred"] = (
-                        create_masked_image(
-                            input_img,
-                            pred_msk,
-                            target.num_classes,
-                        )
-                    )
-                    logits = rearrange(logits, "b 1 1 h w -> (b h w)")
-                    targets = rearrange(targets, "b 1 1 h w -> (b h w)")
-                    targets = targets.float()
                 case "multilabel_classif":
                     logits = self.heads[name_target](x_enc, ssl_phase)
                     targets = targets.float()
@@ -640,7 +604,7 @@ class BaseMIM(nn.Module, ABC):
 
         return x
 
-    def encode_or_decode_all(
+    def encode_all(
         self,
         x: dict[str, Tensor],
         model: nn.Module,
@@ -698,7 +662,7 @@ class BaseMIM(nn.Module, ABC):
         stage: Literal["train", "val", "test"],
     ) -> tuple[Tensor | None, Tensor | None, Tensor | None, Tensor | None]:
         """Shared forward pass for all MIM modules."""
-        x_enc, mask_token, embed_inds, dates, ref_date = self.embed(batch)
+        x_enc, mask_token, dates, ref_date = self.embed(batch)
         x_enc = self.enc_add_encodings(x_enc, dates, ref_date)
 
         x_enc, mask_token, mask_attn, mask_rec = self.mask(x_enc, mask_token, ssl_phase)
@@ -713,7 +677,7 @@ class BaseMIM(nn.Module, ABC):
 
             x_dec = self.decode(x_dec)
 
-            pixels_rec, mask_rec = self.rec_pixels(x_dec, embed_inds, mask_rec)
+            pixels_rec, mask_rec = self.rec_pixels(x_dec, mask_rec)
             loss_rec = self.compute_loss_rec(
                 pixels_rec,
                 mask_rec,

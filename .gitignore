@@ -138,3 +138,6 @@ dmypy.json
 config/conf.yaml
 
 *.sh
+
+# ClearML conf
+clearml.conf

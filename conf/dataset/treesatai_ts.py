@@ -14,7 +14,6 @@ from maestro.dataset.treesatai_ts import TreeSatAITSDataset
 @dataclass
 class TreeSatAITSConfig(DatasetConfig):  # noqa: D101
     rel_dir: str = "TreeSatAI-TS"
-    balance_pretrain: bool = False
     val_pretrain: bool = True
     filter_percent: int | None = None
     crop_meters: float = 60.0

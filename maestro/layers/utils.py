@@ -5,7 +5,6 @@ from typing import Literal
 
 import numpy as np
 import torch
-from sympy.ntheory import factorint
 from torch import Tensor
 
 from maestro import RNG
@@ -44,7 +43,7 @@ def shuffle_enc_to_dec(x: dict[str, Tensor]) -> dict[str, Tensor]:
 
 def group_mods(
     x: dict[str, Tensor],
-    multimodal: Literal[
+    fusion_mode: Literal[
         "msgfm",
         "shared",
         "monotemp",
@@ -55,7 +54,7 @@ def group_mods(
     groups: list[tuple],
 ) -> dict[str, Tensor]:
     """Group modality sequences."""
-    match multimodal:
+    match fusion_mode:
         case "msgfm" | "shared" | "monotemp" | "croma-intergroup":
             dim = 0
             groups = None
@@ -82,7 +81,7 @@ def group_mods(
 
 def ungroup_mods(
     x_group: dict[str, Tensor],
-    multimodal: Literal[
+    fusion_mode: Literal[
         "msgfm",
         "shared",
         "monotemp",
@@ -95,7 +94,7 @@ def ungroup_mods(
     grid_size: dict[str, int],
 ) -> dict[str, Tensor]:
     """Ungroup modality sequences."""
-    match multimodal:
+    match fusion_mode:
         case "msgfm" | "shared" | "monotemp" | "croma-intergroup":
             dim = 0
             groups = None
@@ -222,12 +221,3 @@ def posemb_sincos_2d(
         dim=-1,
     )
     return pos_encoding.to(dtype)
-
-
-def downsamplings_from_patch_size(unpool_dim: int | None, patch_size: int) -> list[int]:
-    """Infer downsamplings associated with a given patch size."""
-    downsamplings = []
-    if unpool_dim:
-        for prime, power in factorint(patch_size).items():
-            downsamplings += [prime] * power
-    return downsamplings[::-1]

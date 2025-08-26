@@ -26,11 +26,10 @@ class DOFABaseline(BaseModule, ABC):
         self,
         datasets: DatasetsConfig,
         backbone_size: str,
-        unpool_dim: int,
         pretrained_path: str | None = None,
         freeze: bool = False,
         type_head: Literal["linear", "attentive"] = "linear",
-        multimodal: Literal["shared", "monotemp"] = "shared",
+        fusion_mode: Literal["shared", "monotemp"] = "shared",
         add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
         date_dim: int = 8,
@@ -45,16 +44,14 @@ class DOFABaseline(BaseModule, ABC):
             The dataset config used in the probing/finetuning phase.
         backbone_size: str
             Defines the backbone to use. To choose in "small", "base", "large", "huge".
-        unpool_dim: int
-            Parameter given to the pixelify head.
         pretrained_path: str
            Path to the location of the pretrained weights.
         freeze: bool
             To freeze or not to freeze the DinoV2 backbone.
         type_head: str
            Segmentation head to use. Either "linear" (default) or "attentive".
-        multimodal: str
-           Multimodal strategy. Either "shared" (default) or "monotemp" (default).
+        fusion_mode: str
+           Fusion strategy. Either "shared" (default) or "monotemp" (default).
         add_date_enc: bool
            Whether to add the date encodings to the embeddings.
         fac_date_enc: float
@@ -101,8 +98,7 @@ class DOFABaseline(BaseModule, ABC):
         self.mlp_ratio = 4.0
         self.norm_layer = partial(nn.LayerNorm, eps=1e-6)
         self.type_head = type_head
-        self.multimodal = multimodal
-        self.unpool_dim = unpool_dim
+        self.fusion_mode = fusion_mode
         self.add_date_enc = add_date_enc
         self.fac_date_enc = fac_date_enc
         self.date_dim = date_dim
@@ -113,9 +109,8 @@ class DOFABaseline(BaseModule, ABC):
             datasets,
             self.patch_size,
             self.embed_dim,
-            self.unpool_dim,
             self.type_head,
-            self.multimodal,
+            self.fusion_mode,
             self.add_date_enc,
             self.fac_date_enc,
             self.date_dim,
@@ -227,7 +222,9 @@ class DOFABaseline(BaseModule, ABC):
     ) -> ModuleDict:
         encoder = ModuleDict()
 
-        model_names = self.dataset.inputs if self.multimodal != "shared" else ["shared"]
+        model_names = (
+            self.dataset.inputs if self.fusion_mode != "shared" else ["shared"]
+        )
 
         for name_mod in model_names:
             encoder_mod = nn.ModuleList(
@@ -375,7 +372,7 @@ class DOFABaseline(BaseModule, ABC):
             cls_tokens = cls_token.expand(x_tokenized.shape[0], -1, -1)
             x_enc = torch.cat((cls_tokens, x_tokenized), dim=1)
 
-            encoder_mod = "shared" if self.multimodal == "shared" else name_mod
+            encoder_mod = "shared" if self.fusion_mode == "shared" else name_mod
             for block in self.encoder[encoder_mod]:
                 x_enc = block(x_enc)
 

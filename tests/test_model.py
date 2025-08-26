@@ -6,7 +6,7 @@ from maestro.train.model import SSLModule
 
 
 @pytest.mark.parametrize(
-    "multimodal, allmods_depth, stage, model_size",
+    "fusion_mode, inter_depth, stage, model_size",
     itertools.product(
         ("shared", "monotemp", "mod", "group"),
         (0,),
@@ -17,16 +17,16 @@ from maestro.train.model import SSLModule
 def test_ssl_mae(
     datasets_treesat,
     mask,
-    multimodal,
-    allmods_depth,
+    fusion_mode,
+    inter_depth,
     stage,
     model_size,
 ):
     ssl_module = SSLModule(
         datasets=datasets_treesat,
         mask=mask,
-        multimodal=multimodal,
-        allmods_depth=allmods_depth,
+        fusion_mode=fusion_mode,
+        inter_depth=inter_depth,
         model="mae",
         model_size=model_size,
     )
@@ -34,7 +34,7 @@ def test_ssl_mae(
 
 
 @pytest.mark.parametrize(
-    "multimodal, allmods_depth, stage, model_size",
+    "fusion_mode, inter_depth, stage, model_size",
     itertools.product(
         ("mod", "group"),
         (3,),
@@ -42,19 +42,19 @@ def test_ssl_mae(
         ("tiny",),
     ),
 )
-def test_ssl_allmods_mae(
+def test_ssl_inter_mae(
     datasets_treesat,
     mask,
-    multimodal,
-    allmods_depth,
+    fusion_mode,
+    inter_depth,
     stage,
     model_size,
 ):
     ssl_module = SSLModule(
         datasets=datasets_treesat,
         mask=mask,
-        multimodal=multimodal,
-        allmods_depth=allmods_depth,
+        fusion_mode=fusion_mode,
+        inter_depth=inter_depth,
         model="mae",
         model_size=model_size,
     )
@@ -62,7 +62,7 @@ def test_ssl_allmods_mae(
 
 
 @pytest.mark.parametrize(
-    "multimodal, allmods_depth, stage, model_size, type_head, loss",
+    "fusion_mode, inter_depth, stage, model_size, type_head, loss",
     itertools.product(
         ("group",),
         (0,),
@@ -75,8 +75,8 @@ def test_ssl_allmods_mae(
 def test_ssl_head_loss(
     datasets_treesat,
     mask,
-    multimodal,
-    allmods_depth,
+    fusion_mode,
+    inter_depth,
     stage,
     model_size,
     type_head,
@@ -85,8 +85,8 @@ def test_ssl_head_loss(
     ssl_module = SSLModule(
         datasets=datasets_treesat,
         mask=mask,
-        multimodal=multimodal,
-        allmods_depth=allmods_depth,
+        fusion_mode=fusion_mode,
+        inter_depth=inter_depth,
         model="mae",
         model_size=model_size,
         type_head=type_head,
@@ -100,8 +100,8 @@ def test_model_should_fail(datasets_treesat, mask):
     _ = SSLModule(
         datasets=datasets_treesat,
         mask=mask,
-        multimodal="group",
-        allmods_depth=0,
+        fusion_mode="group",
+        inter_depth=0,
         model="MAE",
         model_size="tiny",
     )

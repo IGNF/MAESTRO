@@ -31,10 +31,9 @@ class Dinov2Baseline(BaseModule):
         self,
         datasets: DatasetsConfig,
         backbone_size: str,
-        unpool_dim: int,
         freeze: bool = False,
         type_head: Literal["linear", "attentive"] = "linear",
-        multimodal: Literal["shared", "monotemp"] = "shared",
+        fusion_mode: Literal["shared", "monotemp"] = "shared",
         weight_source: Literal["imagenat", "sat"] = "imagenat",
         pretrained_path: str | None = None,
         add_date_enc: bool = True,
@@ -51,14 +50,12 @@ class Dinov2Baseline(BaseModule):
             The dataset config used in the probing/finetuning phase.
         backbone_size: str
             Defines the backbone to use. To choose in "small", "base", "large", "huge".
-        unpool_dim: int
-            Parameter given to the pixelify head.
         freeze: bool
             To freeze or not to freeze the DinoV2 backbone.
         type_head: str
            Segmentation head to use. Either "linear" (default) or "attentive".
-        multimodal: str
-           Multimodal strategy. Either "shared" (default) or "monotemp" (default).
+        fusion_mode: str
+           Fusion strategy. Either "shared" (default) or "monotemp" (default).
         weight_source: str
            Either "random", "imagenat" (default) or "sat".
         pretrained_path: str
@@ -77,13 +74,12 @@ class Dinov2Baseline(BaseModule):
         """
         self.dataset = datasets.dataset
         self.type_head = type_head
-        self.multimodal = multimodal
+        self.fusion_mode = fusion_mode
         self.weight_source = weight_source
         self.pretrained_path = pretrained_path
         self.backbone_size = backbone_size
         self.std = 0.01
         self.keep_norm = keep_norm
-        self.unpool_dim = unpool_dim
         self.add_date_enc = add_date_enc
         self.fac_date_enc = fac_date_enc
         self.date_dim = date_dim
@@ -125,9 +121,8 @@ class Dinov2Baseline(BaseModule):
             datasets,
             self.patch_size,
             self.embed_dim,
-            self.unpool_dim,
             self.type_head,
-            self.multimodal,
+            self.fusion_mode,
             self.add_date_enc,
             self.fac_date_enc,
             self.date_dim,
@@ -183,7 +178,9 @@ class Dinov2Baseline(BaseModule):
     ) -> ModuleDict:
         encoder = ModuleDict()
 
-        model_names = self.dataset.inputs if self.multimodal != "shared" else ["shared"]
+        model_names = (
+            self.dataset.inputs if self.fusion_mode != "shared" else ["shared"]
+        )
         model_config = Dinov2Config(**config_dict)
 
         for name_mod in model_names:
@@ -402,7 +399,7 @@ class Dinov2Baseline(BaseModule):
 
             x_tokenized = self.patch_embed[name_mod](input_mod)
 
-            encoder_mod = "shared" if self.multimodal == "shared" else name_mod
+            encoder_mod = "shared" if self.fusion_mode == "shared" else name_mod
 
             x_enc = self.encoder[encoder_mod](x_tokenized)["last_hidden_state"]
 

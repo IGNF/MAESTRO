@@ -14,11 +14,10 @@ from torchmetrics import MeanMetric
 from conf.dataset.utils import RasterConfig
 from conf.datasets import DatasetsConfig
 from maestro.layers.head import ClassificationHead, PixelifyHead
-from maestro.layers.mask import (
-    create_masked_image,
-    get_cd_mask_from_logits,
-    get_segment_mask_from_logits,
-    get_target_mask_from_batch,
+from maestro.layers.overlay import (
+    create_overlay,
+    onehot_pred_from_logits,
+    onehot_target_from_batch,
 )
 from maestro.layers.utils import encode_dates, group_mods, ungroup_mods
 from maestro.train.metric import MonoLabelMetric, MultiLabelMetric
@@ -34,9 +33,8 @@ class BaseModule(Module, ABC):
         datasets: DatasetsConfig,
         patch_size: int,
         embed_dim: int,
-        unpool_dim: int,
         type_head: Literal["linear", "attentive"] = "linear",
-        multimodal: Literal["shared", "monotemp", "croma-intergroup"] = "shared",
+        fusion_mode: Literal["shared", "monotemp", "croma-intergroup"] = "shared",
         add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
         date_dim: int = 8,
@@ -48,7 +46,7 @@ class BaseModule(Module, ABC):
         self.dataset = datasets.dataset
         self.type_head = type_head
         self.patch_size = patch_size
-        self.multimodal = multimodal
+        self.fusion_mode = fusion_mode
         self.keep_norm = keep_norm
         self.add_date_enc = add_date_enc
 
@@ -91,7 +89,6 @@ class BaseModule(Module, ABC):
                 self.heads[name_target] = PixelifyHead(
                     type_head,
                     embed_dim,
-                    unpool_dim,
                     target.num_classes,
                     target_image_size // ref_grid_size,
                 )
@@ -108,13 +105,6 @@ class BaseModule(Module, ABC):
             match target.type_target:
                 case "classif" | "segment":
                     self.loss_pred[name_target] = F.cross_entropy
-                    metric_partial = partial(
-                        MonoLabelMetric,
-                        type_target=target.type_target,
-                        num_classes=target.num_classes,
-                    )
-                case "change_detect":
-                    self.loss_pred[name_target] = F.binary_cross_entropy_with_logits
                     metric_partial = partial(
                         MonoLabelMetric,
                         type_target=target.type_target,
@@ -138,12 +128,12 @@ class BaseModule(Module, ABC):
         # flattening/unflattening of date dimensions
         self.group = partial(
             group_mods,
-            multimodal=self.multimodal,
+            fusion_mode=self.fusion_mode,
             groups=self.dataset.groups,
         )
         self.ungroup = partial(
             ungroup_mods,
-            multimodal=self.multimodal,
+            fusion_mode=self.fusion_mode,
             groups=self.dataset.groups,
             num_dates=self.num_dates,
             grid_size=self.grid_size,
@@ -194,7 +184,7 @@ class BaseModule(Module, ABC):
 
         return self.group(x_enc)
 
-    def compute_loss_pred(  # noqa: PLR0915
+    def compute_loss_pred(
         self,
         x_enc: dict[str, Tensor],
         batch: dict[str, Tensor],
@@ -238,60 +228,39 @@ class BaseModule(Module, ABC):
         log_inputs, log_preds, log_targets = {}, {}, {}
         for name_target, target in self.dataset.targets.items():
             targets = batch[name_target]
-            # image logger
-            if target.type_target in ("segment", "change_detect"):
-                input_keys = (x for x in self.dataset.log_inputs if x in batch)
-                input_img = batch[next(input_keys)][
-                    0,
-                    0,
-                ][:RGB_BANDS]
-                log_inputs[f"{ssl_phase}_{name_target}_{stage}/_input"] = input_img
-                num_classes = target.num_classes
-                target_msk = get_target_mask_from_batch(
+            if target.type_target == "segment":
+                overlay_key = next(x for x in self.dataset.log_inputs if x in batch)
+                overlay_img = batch[overlay_key][0, 0, :RGB_BANDS]
+                onehot_target = onehot_target_from_batch(
                     batch[name_target][0, 0, 0],
-                    num_classes,
+                    target.num_classes,
                     target.missing_val,
                 )
+                log_inputs[f"{ssl_phase}_{name_target}_{stage}/_input"] = overlay_img
                 log_targets[f"{ssl_phase}_{name_target}_{stage}/_target"] = (
-                    create_masked_image(
-                        input_img,
-                        target_msk,
-                        num_classes,
+                    create_overlay(
+                        overlay_img,
+                        onehot_target,
+                        target.num_classes,
                     )
                 )
             match target.type_target:
                 case "segment":
                     logits = self.heads[name_target](x_ref, ssl_phase)
-                    # image_logger
-                    pred_msk = get_segment_mask_from_logits(logits[0, 0], num_classes)
+                    onehot_pred = onehot_pred_from_logits(
+                        logits[0, 0],
+                        target.num_classes,
+                    )
                     log_preds[f"{ssl_phase}_{name_target}_{stage}/_pred"] = (
-                        create_masked_image(
-                            input_img,
-                            pred_msk,
-                            num_classes,
+                        create_overlay(
+                            overlay_img,
+                            onehot_pred,
+                            target.num_classes,
                         )
                     )
                     logits = rearrange(logits, "b 1 c h w -> (b h w) c")
                     targets = rearrange(targets, "b 1 1 h w -> (b h w)")
                     targets = targets.long()
-                case "change_detect":
-                    logits = self.heads[name_target](x_ref, ssl_phase)
-                    # image logger
-                    log_inputs[f"{ssl_phase}_{name_target}_{stage}/_image_1"] = (
-                        log_inputs.pop(f"{ssl_phase}_{name_target}_{stage}/_input")
-                    )
-                    input_img = batch[next(input_keys)][0, 0][:RGB_BANDS]
-                    pred_msk = get_cd_mask_from_logits(logits)
-                    log_preds[f"{ssl_phase}_{name_target}_{stage}/_image_2_pred"] = (
-                        create_masked_image(
-                            input_img,
-                            pred_msk,
-                            num_classes,
-                        )
-                    )
-                    logits = rearrange(logits, "b 1 1 h w -> (b h w)")
-                    targets = rearrange(targets, "b 1 1 h w -> (b h w)")
-                    targets = targets.float()
                 case "multilabel_classif":
                     logits = self.heads[name_target](x_enc, ssl_phase)
                     targets = targets.float()
@@ -326,4 +295,6 @@ class BaseModule(Module, ABC):
                 logits_selected,
                 targets_selected,
             )
+        if not isinstance(loss_pred, Tensor):
+            loss_pred = 0 * x_enc.mean()
         return loss_pred, log_inputs, log_preds, log_targets

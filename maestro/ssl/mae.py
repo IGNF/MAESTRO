@@ -19,11 +19,10 @@ class MAE(BaseMIM):
         self,
         datasets: DatasetsConfig,
         mask: MaskConfig,
-        multimodal: Literal["msgfm", "shared", "monotemp", "mod", "group"],
-        allmods_depth: tuple[int],
+        fusion_mode: Literal["msgfm", "shared", "monotemp", "mod", "group"],
+        inter_depth: tuple[int],
         model: Literal["mae"],
         num_levels: Literal[1],
-        unpool_dim: int | None,
         embed_dim: int,
         depth: int,
         heads: int,
@@ -43,10 +42,9 @@ class MAE(BaseMIM):
     ) -> None:
         super().__init__(
             datasets=datasets,
-            multimodal=multimodal,
+            fusion_mode=fusion_mode,
             model=model,
             num_levels=num_levels,
-            unpool_dim=unpool_dim,
             embed_dim=embed_dim,
             decoder_dim=decoder_dim,
             type_head=type_head,
@@ -85,11 +83,11 @@ class MAE(BaseMIM):
             {},
             {},
         )
-        match multimodal:
+        match fusion_mode:
             case "msgfm" | "shared" | "monotemp":
                 name_models = (
                     list(num_dates_mod.keys())
-                    if multimodal == "monotemp"
+                    if fusion_mode == "monotemp"
                     else ["shared"]
                 )
                 for name_mod in num_dates_mod:
@@ -101,12 +99,12 @@ class MAE(BaseMIM):
             case "mod" | "group":
                 name_models = (
                     list(num_dates_group.keys())
-                    if multimodal == "group"
+                    if fusion_mode == "group"
                     else list(num_dates_mod.keys())
                 )
                 for name_mod, name_group in datasets.dataset.groups:
                     mod = datasets.dataset.inputs[name_mod]
-                    if multimodal == "group":
+                    if fusion_mode == "group":
                         scale_fac = num_dates_group[name_group] ** mask.mask_scale
                         self.mask_ratio[name_group] = (
                             1 - (1 - mask.mask_ratio) / scale_fac
@@ -131,14 +129,14 @@ class MAE(BaseMIM):
                     )
                     self.mask_loc[name_mod] = mask.mask_loc
             case _:
-                msg = f"Invalid multimodal mode {multimodal}."
+                msg = f"Invalid fusion mode {fusion_mode}."
                 raise ValueError(msg)
 
         self.encoder = nn.ModuleDict(
             {
                 name_mod: Transformer(
                     dim=embed_dim,
-                    depth=depth - allmods_depth,
+                    depth=depth - inter_depth,
                     heads=heads,
                     dim_head=dim_head,
                     mlp_dim=embed_dim * mlp_ratio,
@@ -168,16 +166,16 @@ class MAE(BaseMIM):
                 for name_mod in name_models
             },
         )
-        if allmods_depth:
-            self.encoder_all = Transformer(
+        if inter_depth:
+            self.encoder_inter = Transformer(
                 dim=embed_dim,
-                depth=allmods_depth,
+                depth=inter_depth,
                 heads=heads,
                 dim_head=dim_head,
                 mlp_dim=embed_dim * mlp_ratio,
             )
         else:
-            self.encoder_all = None
+            self.encoder_inter = None
 
     def mask_struct(self, x: dict[str, Tensor]) -> dict[str, Tensor]:
         """Structural masking of modalities, band groups, dates."""
@@ -297,8 +295,8 @@ class MAE(BaseMIM):
     ) -> dict[str, Tensor]:
         """Apply MAE encoder."""
         x = self.encode_or_decode(x, model=self.encoder)
-        if self.encoder_all:
-            x = self.encode_or_decode_all(x, model=self.encoder_all)
+        if self.encoder_inter:
+            x = self.encode_all(x, model=self.encoder_inter)
         return x
 
     def encoder_to_decoder(self, x: dict[str, Tensor]) -> dict[str, Tensor]:

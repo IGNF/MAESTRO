@@ -72,8 +72,6 @@ class BaselineModule(BaseModule):
             case "prithvi":
                 model_args = {
                     "datasets": datasets,
-                    "interpolate": interpolate,
-                    "fusion_mode": fusion_mode,
                     "backbone_size": model_size,
                     "version": kwargs.get("version", "v2"),
                     "freeze": freeze,
@@ -87,12 +85,11 @@ class BaselineModule(BaseModule):
             case "satmae":
                 model_args = {
                     "datasets": datasets,
-                    "interpolate": interpolate,
-                    "fusion_mode": fusion_mode,
                     "backbone_size": model_size,
                     "freeze": freeze,
                     "pretrained_path": pretrained_path,
                     "type_head": type_head,
+                    "fusion_mode": fusion_mode,
                     "add_date_enc": add_date_enc,
                     "keep_norm": keep_norm,
                 }

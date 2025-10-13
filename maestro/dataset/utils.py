@@ -22,7 +22,10 @@ def strs_datetimes(date_strs: list[str], fmt: str = "%Y-%m-%d") -> np.ndarray:
         date_str[:-2] + "01" if date_str[-2:] == "00" else date_str
         for date_str in date_strs
     ]
-    datetimes = [datetime.strptime(date_str, fmt) for date_str in date_strs]  # noqa: DTZ007
+    datetimes = [
+        datetime.strptime(date_str, fmt)  # noqa: DTZ007
+        for date_str in date_strs
+    ]
     return dates_numpy(datetimes)
 
 
@@ -75,9 +78,10 @@ def read_csv(
     stage: Literal["train", "val", "test"],
     ssl_phase: Literal["pretrain", "probe", "finetune"],
     version: str | None = None,
-    val_pretrain: bool = False,
     filter_percent: int | None = None,
     fold: int | None = None,
+    val_pretrain: bool = False,
+    test_pretrain: bool = False,
     **kwargs,  # noqa: ANN003
 ) -> Path:
     """Read dataset csv."""
@@ -89,11 +93,13 @@ def read_csv(
     if fold:
         csv_name += [f"fold_{fold}"]
 
-    stages = (
-        ["train", "val"]
-        if stage == "train" and ssl_phase == "pretrain" and val_pretrain
-        else [stage]
-    )
+    stages = [stage]
+    if stage == "train" and ssl_phase == "pretrain":
+        if val_pretrain:
+            stages.append("val")
+        if test_pretrain:
+            stages.append("test")
+
     return pd.concat(
         [
             pd.read_csv(csv_dir / f"{'_'.join([stage, *csv_name])}.csv", **kwargs)

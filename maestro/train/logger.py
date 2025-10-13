@@ -173,12 +173,13 @@ class MetricsLogger(Callback):
         sns.heatmap(cm_df, annot=True, fmt=fmt)
         rgba_buf = fig.canvas.buffer_rgba()
         (w, h) = fig.canvas.get_width_height()
-        plt.close()
-        return (
+        arr = (
             np.frombuffer(rgba_buf, dtype=np.uint8)
             .reshape((h, w, 4))
             .transpose((2, 0, 1))[:3]
         )
+        plt.close()
+        return arr
 
     def on_epoch_end(
         self,
@@ -187,29 +188,24 @@ class MetricsLogger(Callback):
         stage: Literal["train", "val", "test"],
     ) -> None:
         """Log epoch metrics for training/val/test."""
-        if stage == "train" or pl_module.ema_model is None:
-            model = pl_module.model
-        else:
-            model = pl_module.ema_model
-
         match trainer.ssl_phase:
             case "pretrain":
                 self.log_metric(
                     pl_module=pl_module,
                     name=f"{trainer.ssl_phase}_loss_rec/{stage}",
-                    value=model.metrics[f"loss_rec_{stage}"].compute(),
+                    value=pl_module.metrics[f"loss_rec_{stage}"].compute(),
                 )
-                model.metrics[f"loss_rec_{stage}"].reset()
+                pl_module.metrics[f"loss_rec_{stage}"].reset()
             case "probe" | "finetune":
                 self.log_metric(
                     pl_module=pl_module,
                     name=f"{trainer.ssl_phase}_loss_pred/{stage}",
-                    value=model.metrics[f"loss_pred_{stage}"].compute(),
+                    value=pl_module.metrics[f"loss_pred_{stage}"].compute(),
                 )
-                model.metrics[f"loss_pred_{stage}"].reset()
+                pl_module.metrics[f"loss_pred_{stage}"].reset()
 
                 for name_target in pl_module.dataset.targets:
-                    metrics = model.metrics[f"{name_target}_{stage}"].compute()
+                    metrics = pl_module.metrics[f"{name_target}_{stage}"].compute()
                     for name_metric, value in metrics.items():
                         if name_metric == "confusion_matrix":
                             cm = value.cpu().numpy()
@@ -230,7 +226,7 @@ class MetricsLogger(Callback):
                                 name=f"{trainer.ssl_phase}_{name_target}/{name_metric}_{stage}",
                                 value=value,
                             )
-                    model.metrics[f"{name_target}_{stage}"].reset()
+                    pl_module.metrics[f"{name_target}_{stage}"].reset()
 
     def on_train_epoch_end(
         self,
@@ -271,7 +267,7 @@ class MetricsLogger(Callback):
 
         pl_module.log(
             name=f"{trainer.ssl_phase}_{name}/step_train",
-            value=outputs["loss"],
+            value=outputs["loss"] * trainer.accumulate_grad_batches,
             on_step=True,
             on_epoch=False,
             prog_bar=True,

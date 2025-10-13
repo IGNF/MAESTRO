@@ -85,7 +85,10 @@ class FLAIRDataset(GenericDataset):
                 for _, row in dates_mod.iterrows()
             }
 
-        self.cosia_ignore = (15, 16, 17, 18)
+        if dataset.version == "flair2":
+            self.cosia_ignore = (1, 2, 7, 15, 16, 17, 18)
+        else:
+            self.cosia_ignore = (15, 16, 17, 18)
         self.cosia_missing = dataset.cosia.missing_val
 
         self.lpis_ignore = (0,)
@@ -124,7 +127,6 @@ class FLAIRDataset(GenericDataset):
                 json.loads(self.dates_dict[name_mod][zone_id]),
                 start=1,
             )
-        meta["s2_mask_bands"] = [0, 1]
 
         meta["dem_dates"] = meta["aerial_dates"]
         meta["lpis_dates"] = meta["aerial_dates"]
@@ -141,8 +143,6 @@ class FLAIRDataset(GenericDataset):
                 continue
             inputs[name_mod][np.isin(inputs[name_mod], labels_ignore)] = label_missing
 
-        if "dem" in inputs:
-            inputs["dem"][:, 0] = (inputs["dem"][:, 0] - inputs["dem"][:, 1]) * 30
         inputs["ref_date"] = meta["aerial_dates"]
 
         return self.transform_rasters(inputs)

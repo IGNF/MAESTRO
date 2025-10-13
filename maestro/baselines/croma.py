@@ -23,12 +23,12 @@ class CROMABaseline(BaseModule):
     def __init__(
         self,
         datasets: DatasetsConfig,
-        backbone_size: str,
+        backbone_size: Literal["base", "large"],
         freeze: bool = False,
-        type_head: Literal["linear", "attentive"] = "linear",
-        fusion_mode: Literal["monotemp", "croma-intergroup"] = "monotemp",
         pretrained_path: str | None = None,
-        add_date_enc: bool = False,
+        type_head: Literal["linear", "attentive"] = "attentive",
+        fusion_mode: Literal["late-croma", "inter-croma"] = "inter-croma",
+        add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
         date_dim: int = 8,
         keep_norm: bool = True,
@@ -41,25 +41,25 @@ class CROMABaseline(BaseModule):
         datasets: DatasetsConfig
             The dataset config used in the probing/finetuning phase.
         backbone_size: str
-            Defines the backbone to use. To choose in "small", "base", "large", "huge".
+            Backbone size to use. To choose in "base", "large".
         freeze: bool
-            To freeze or not to freeze the DinoV2 backbone.
-        type_head: str
-           Segmentation head to use. Either "linear" (default) or "attentive".
-        fusion_mode: str
-           Fusion strategy. Either "monotemp" (default) or "croma-intergroup".
+            Whether to freeze the backbone.
         pretrained_path: str
-           Path to the location of the pretrained weights.
+            Path to the location of the pretrained weights.
+        type_head: str
+            Segmentation head to use. Either "linear" or "attentive".
+        fusion_mode: str
+            Fusion strategy. Either "late-croma" or "inter-croma".
         add_date_enc: bool
-           Whether to add the date encodings to the embeddings.
+            Whether to add date encodings to the embeddings.
         fac_date_enc: float
-           Factor used to compute the date encodings.
+            Factor used to compute the date encodings.
         date_dim: int
-           Dimension of the date embeddings.
+            Dimension of the date embeddings.
         keep_norm: bool
-           Choose to keep the final layernorm layer.
+            Whether to keep the final layernorm layer.
         kwargs:
-           Arguments to pass to `BaseModel` constructor.
+            Arguments to pass to `BaseModel` constructor.
 
         """
         self.datasets = datasets
@@ -74,17 +74,20 @@ class CROMABaseline(BaseModule):
         self.date_dim = date_dim
         self.keep_norm = keep_norm
 
-        if self.backbone_size == "base":
-            self.encoder_dim = 768
-            self.encoder_depth = 12
-            self.num_heads = 16
-            self.patch_size = 8
-        else:
-            # large by default
-            self.encoder_dim = 1024
-            self.encoder_depth = 24
-            self.num_heads = 16
-            self.patch_size = 8
+        match self.backbone_size:
+            case "base":
+                self.encoder_dim = 768
+                self.encoder_depth = 12
+                self.num_heads = 16
+                self.patch_size = 8
+            case "large":
+                self.encoder_dim = 1024
+                self.encoder_depth = 24
+                self.num_heads = 16
+                self.patch_size = 8
+            case _:
+                msg = "Backbone's size should be `base` or `large`"
+                raise ValueError(msg)
 
         super().__init__(
             datasets,
@@ -106,7 +109,7 @@ class CROMABaseline(BaseModule):
         if self.freeze:
             self.freeze_backbone()
 
-        if self.fusion_mode == "croma-intergroup":
+        if self.fusion_mode == "inter-croma":
             modalities = self.dataset.inputs.keys()
             ref_mod = "s2" if "s2" in modalities else "s1_asc"
             self.num_dates["joint"] = self.num_dates[ref_mod]
@@ -248,10 +251,14 @@ class CROMABaseline(BaseModule):
     def forward(
         self,
         batch: dict[str, Tensor],
-        ssl_phase: Literal["pretrain", "probe", "finetune"],
-        stage: Literal["train", "val", "test"],
-    ) -> tuple[Tensor | None, Tensor | None, Tensor | None, Tensor | None]:
-        """Dinov2 forward pass.
+        ssl_phase: Literal["pretrain", "probe", "finetune"],  # noqa: ARG002
+    ) -> tuple[
+        dict[str, Tensor] | None,
+        None,
+        None,
+        dict[str, Tensor] | None,
+    ]:
+        """CROMA forward pass.
 
         Parameters
         ----------
@@ -260,15 +267,16 @@ class CROMABaseline(BaseModule):
         ssl_phase: str
             SSL phase (pretrain, probe, finetune). Only probing and finetuning
             are needed for baselines.
-        stage: str
-            Learning stage: train, val, test.
 
         Returns
         -------
         tuple: CROMA's outputs.
 
         """
+        batch = self.resize_and_rescale(batch)
+
         batch["s1"] = torch.concat((batch["s1_asc"], batch["s1_des"]), dim=1)
+
         group_batch = self.group(batch)
 
         sar_input = group_batch["s1"]
@@ -276,16 +284,15 @@ class CROMABaseline(BaseModule):
 
         output_croma = self.encoder(sar_images=sar_input, optical_images=optical_input)
 
-        x = {}
-
+        x_enc = {}
         if self.croma_modality in ["both", "optical"]:
-            x["s2"] = output_croma["optical_encodings"]
+            x_enc["s2"] = output_croma["optical_encodings"]
         if self.croma_modality in ["both", "SAR"]:
-            s1_outputs = output_croma["SAR_encodings"]
-            x["s1_asc"], x["s1_des"] = self._ungroup_s1(s1_outputs)
-
-        if self.fusion_mode == "croma-intergroup":
-            x["joint"] = output_croma["joint_encodings"]
+            x_enc["s1_asc"], x_enc["s1_des"] = self._ungroup_s1(
+                output_croma["SAR_encodings"],
+            )
+        if self.fusion_mode == "inter-croma":
+            x_enc["joint"] = output_croma["joint_encodings"]
 
         if self.add_date_enc:
             dates = {}
@@ -293,16 +300,10 @@ class CROMABaseline(BaseModule):
                 dates[name_mod] = batch[f"{name_mod}_dates"]
 
             ref_date = batch["ref_date"]
-            x = self._add_date_encodings(x, dates, ref_date)
+            x_enc = self._add_date_encodings(x_enc, dates, ref_date)
 
-        loss_pred, log_input, log_pred, log_target = self.compute_loss_pred(
-            x,
-            batch,
-            ssl_phase,
-            stage,
-        )
-        self.metrics[f"loss_pred_{stage}"].update(loss_pred)
-        return None, log_input, log_pred, log_target, loss_pred
+        logits = self.compute_logits(x_enc)
+        return batch, None, None, logits
 
 
 # The following lines are adapted from https://github.com/antofuller/CROMA

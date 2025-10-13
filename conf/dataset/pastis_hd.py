@@ -20,6 +20,7 @@ class PASTISHDConfig(DatasetConfig):  # noqa: D101
     fold: int | None = None
     repeats: int = 8
     crop_meters: float = 160
+    grid_pos_enc: int | None = 256
 
     ref_input: str | None = "s2"  # defines grid for raster targets
     log_inputs: list[str] = field(

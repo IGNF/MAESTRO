@@ -21,59 +21,52 @@ class BaselineModule(BaseModule):
         self,
         # shared args
         datasets: DatasetsConfig,
-        model: Literal["dinov2", "dofa", "croma"],
+        model: Literal["dinov2", "dofa", "croma", "prithvi", "satmae"],
+        interpolate: Literal["nearest", "bilinear", "bicubic"],
+        fusion_mode: Literal["shared", "monotemp", "mod", "late-croma", "inter-croma"],
         model_size: Literal["small", "base", "large"],
-        type_head: Literal["linear", "attentive"] = "linear",
-        loss: Literal["l1", "l2", "l1_norm", "l2_norm"] = "l2_norm",
+        type_head: Literal["linear", "attentive"] = "attentive",
         weight_source: str = "imagenat",
         pretrained_path: str | None = None,
         freeze: bool = False,
         use_ema: bool = False,
-        fusion_mode: Literal["shared", "monotemp", "croma-intergroup"] = "shared",
         keep_norm: bool = True,
         add_date_enc: bool = True,
+        **kwargs,  # noqa: ANN003
     ) -> None:
-        super().__init__(datasets, model, loss)
+        super().__init__(datasets)
 
         match model:
             case "dinov2":
-                if len(datasets.filter_finetune) > 1:
-                    msg = "Too many datasets given."
-                    raise NotImplementedError(msg)
-
                 model_args = {
                     "datasets": datasets,
-                    "type_head": type_head,
-                    "backbone_size": model_size,
-                    "weight_source": weight_source,
-                    "pretrained_path": pretrained_path,
-                    "freeze": freeze,
+                    "interpolate": interpolate,
                     "fusion_mode": fusion_mode,
-                    "keep_norm": keep_norm,
+                    "backbone_size": model_size,
+                    "freeze": freeze,
+                    "pretrained_path": pretrained_path,
+                    "weight_source": weight_source,
+                    "type_head": type_head,
                     "add_date_enc": add_date_enc,
+                    "keep_norm": keep_norm,
                 }
 
                 self.model = Dinov2Baseline(**model_args)
-
             case "dofa" | "croma":
-                if len(datasets.filter_finetune) > 1:
-                    msg = "Too many datasets given."
-                    raise NotImplementedError(msg)
-
                 model_args = {
                     "datasets": datasets,
-                    "type_head": type_head,
+                    "interpolate": interpolate,
+                    "fusion_mode": fusion_mode,
                     "backbone_size": model_size,
                     "freeze": freeze,
                     "pretrained_path": pretrained_path,
-                    "fusion_mode": fusion_mode,
-                    "keep_norm": keep_norm,
+                    "type_head": type_head,
                     "add_date_enc": add_date_enc,
+                    "keep_norm": keep_norm,
                 }
 
                 model_dict = {"dofa": DOFABaseline, "croma": CROMABaseline}
                 self.model = model_dict[model](**model_args)
-
             case _:
                 msg = f"Invalid model name {model}. Not implemented"
                 raise ValueError(msg)
@@ -97,7 +90,7 @@ class BaselineModule(BaseModule):
             * self.trainer.accumulate_grad_batches
             * self.trainer.num_nodes
             * self.trainer.num_devices
-            / 3.0  # remain iso with past runs
+            / 3.0  # remain iso with existing runs on Jean Zellou
         )
 
         lr = (

@@ -67,6 +67,7 @@ def run_experiment(
         model = SSLModule.load_from_checkpoint(
             run.load_ckpt_path,
             map_location=lambda storage, _: storage,
+            strict=False,
             datasets=datasets,
         )
     else:

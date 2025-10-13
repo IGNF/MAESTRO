@@ -27,13 +27,12 @@ def test_mae(datasets_treesat, mask, model_map, model_size, fusion_mode):
     model_args = {
         "datasets": datasets_treesat,
         "mask": mask,
+        "interpolate": "nearest",
         "fusion_mode": fusion_mode,
         "model": "mae",
         "inter_depth": 0,
         "num_levels": 1,
         "type_head": "attentive",
-        "loss_fn": torch.abs,
-        "norm_pix_loss": True,
         "fac_abs_enc": 1.0,
         "fac_date_enc": 1.0,
     }
@@ -41,41 +40,10 @@ def test_mae(datasets_treesat, mask, model_map, model_size, fusion_mode):
 
 
 @pytest.mark.parametrize(
-    "model_size, loss_fn, norm_pix_loss",
+    "model_size, interpolate, type_head, fac_abs_enc, fac_date_enc",
     itertools.product(
         ("tiny",),
-        (torch.square, torch.abs),
-        (True, False),
-    ),
-)
-def test_mae_loss(
-    datasets_treesat,
-    mask,
-    model_map,
-    model_size,
-    loss_fn,
-    norm_pix_loss,
-):
-    model_args = {
-        "datasets": datasets_treesat,
-        "mask": mask,
-        "fusion_mode": "group",
-        "model": "mae",
-        "inter_depth": 0,
-        "num_levels": 1,
-        "type_head": "attentive",
-        "loss_fn": loss_fn,
-        "norm_pix_loss": norm_pix_loss,
-        "fac_abs_enc": 1.0,
-        "fac_date_enc": 1.0,
-    }
-    model_map[model_size](**model_args)
-
-
-@pytest.mark.parametrize(
-    "model_size, type_head, fac_abs_enc, fac_date_enc",
-    itertools.product(
-        ("tiny",),
+        ("nearest", "bilinear"),
         ("attentive", "linear"),
         (1.0, 0.0),
         (1.0, 0.0),
@@ -86,6 +54,7 @@ def test_mae_architecture(
     mask,
     model_map,
     model_size,
+    interpolate,
     type_head,
     fac_abs_enc,
     fac_date_enc,
@@ -93,13 +62,12 @@ def test_mae_architecture(
     model_args = {
         "datasets": datasets_treesat,
         "mask": mask,
+        "interpolate": interpolate,
         "fusion_mode": "group",
         "model": "mae",
         "inter_depth": 0,
         "num_levels": 1,
         "type_head": type_head,
-        "loss_fn": torch.square,
-        "norm_pix_loss": True,
         "fac_abs_enc": fac_abs_enc,
         "fac_date_enc": fac_date_enc,
     }

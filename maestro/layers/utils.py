@@ -1,61 +1,30 @@
 """Utils module."""
 
-import itertools
 from typing import Literal
 
 import numpy as np
 import torch
+import torch.nn.functional as F  # noqa: N812
+from einops import rearrange
 from torch import Tensor
 
-from maestro import RNG
-
-
-def shuffle_enc_to_dec(x: dict[str, Tensor]) -> dict[str, Tensor]:
-    """Shuffle modalities and dates."""
-    name_ids = []
-    num_patches = []
-    for name_mod in x:
-        for idx_date in range(x[name_mod].shape[1]):
-            name_ids.append((name_mod, idx_date))
-            num_patches.append(x[name_mod].shape[2])
-    compat_mat = np.array(num_patches)[:, None] == np.array(num_patches)[None, :]
-    compat_mat = compat_mat.astype(np.float32) - np.eye(
-        len(num_patches),
-        dtype=np.float32,
-    )
-
-    x_dec = {name_mod: x[name_mod].clone() for name_mod in x}
-    for name_out in x_dec:
-        for idx_batch, idx_out in itertools.product(
-            range(x_dec[name_out].shape[0]),
-            range(x_dec[name_out].shape[1]),
-        ):
-            compat_row = compat_mat[name_ids.index((name_out, idx_out))]
-            if RNG.choice([True, False]) and compat_row.sum() > 0:
-                idx_in = RNG.choice(
-                    range(len(name_ids)),
-                    p=compat_row / compat_row.sum(),
-                )
-                (name_in, idx_in) = name_ids[idx_in]
-                x_dec[name_out][idx_batch, idx_out] = x[name_in][idx_batch, idx_in]
-    return x_dec
 
 
 def group_mods(
     x: dict[str, Tensor],
     fusion_mode: Literal[
-        "msgfm",
         "shared",
         "monotemp",
         "mod",
         "group",
-        "croma-intergroup",
+        "late-croma",
+        "inter-croma",
     ],
     groups: list[tuple],
 ) -> dict[str, Tensor]:
     """Group modality sequences."""
     match fusion_mode:
-        case "msgfm" | "shared" | "monotemp" | "croma-intergroup":
+        case "shared" | "monotemp" | "late-croma" | "inter-croma":
             dim = 0
             groups = None
         case "mod":
@@ -82,12 +51,12 @@ def group_mods(
 def ungroup_mods(
     x_group: dict[str, Tensor],
     fusion_mode: Literal[
-        "msgfm",
         "shared",
         "monotemp",
         "mod",
         "group",
-        "croma-intergroup",
+        "late-croma",
+        "inter-croma",
     ],
     groups: list[tuple],
     num_dates: dict[str, int],
@@ -95,7 +64,7 @@ def ungroup_mods(
 ) -> dict[str, Tensor]:
     """Ungroup modality sequences."""
     match fusion_mode:
-        case "msgfm" | "shared" | "monotemp" | "croma-intergroup":
+        case "shared" | "monotemp" | "late-croma" | "inter-croma":
             dim = 0
             groups = None
         case "mod":
@@ -145,6 +114,13 @@ def reshape_encoding(encoding: Tensor, grid_size: int) -> Tensor:
         # N.B.: expand returns just another view of data and does not clone it,
         # so inplace operations should not be performed after it
     )
+    if encoding.shape[-3] % grid_size:
+        B = encoding.shape[0]  # noqa: N806
+        resize = grid_size * round(encoding.shape[-3] / float(grid_size))
+        encoding = rearrange(encoding, "b d h w c -> (b d) c h w")
+        encoding = F.interpolate(encoding, (resize,) * 2, mode="bilinear")
+        encoding = rearrange(encoding, "(b d) c h w -> b d h w c", b=B)
+
     encoding = encoding.unflatten(-3, (grid_size, -1))
     encoding = encoding.unflatten(-2, (grid_size, -1))
     return encoding.mean(dim=(-2, -4)).flatten(-3, -2)

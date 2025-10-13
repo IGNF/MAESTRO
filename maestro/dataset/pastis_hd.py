@@ -1,5 +1,6 @@
 """PASTIS-HD dataset module."""
 
+import json
 from pathlib import Path
 from typing import Literal
 
@@ -52,16 +53,16 @@ class PASTISHDDataset(GenericDataset):
         self.repeats = dataset.repeats
 
         self.s2_dates = [
-            dict_datetimes(meta_data.loc[str(image_id), "dates-S2"])
+            dict_datetimes(json.loads(meta_data.loc[str(image_id), "dates-S2"]))
             for image_id in image_ids
         ]
 
         self.s1_asc_dates = [
-            dict_datetimes(meta_data.loc[str(image_id), "dates-S1A"])
+            dict_datetimes(json.loads(meta_data.loc[str(image_id), "dates-S1A"]))
             for image_id in image_ids
         ]
         self.s1_des_dates = [
-            dict_datetimes(meta_data.loc[str(image_id), "dates-S1D"])
+            dict_datetimes(json.loads(meta_data.loc[str(image_id), "dates-S1D"]))
             for image_id in image_ids
         ]
 

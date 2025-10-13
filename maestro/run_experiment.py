@@ -73,23 +73,39 @@ def run_experiment(
     else:
         model = model_partial()
 
-    if opt_pretrain.epochs > 0:
+    if (
+        opt_pretrain.epochs > 0
+        and not run.load_ckpt_path
+        and (not run.fit_ckpt_path or run.fit_phase == "pretrain")
+    ):
         LOGGER.info("Pretrain")
         data_pretrain = data_partial(ssl_phase="pretrain", opt=opt_pretrain)
         trainer_pretrain = trainer_partial(
             ssl_phase="pretrain",
             opt=opt_pretrain,
         )
-        trainer_pretrain.fit_and_test(model=model, datamodule=data_pretrain)
+        trainer_pretrain.fit_and_test(
+            model=model,
+            datamodule=data_pretrain,
+            ckpt_path=run.fit_ckpt_path,
+        )
 
-    if opt_probe.epochs > 0:
+    if (
+        opt_probe.epochs > 0
+        and (not run.load_ckpt_path or run.load_phase == "pretrain")
+        and (not run.fit_ckpt_path or run.fit_phase == "probe")
+    ):
         LOGGER.info("Probe")
         data_probe = data_partial(ssl_phase="probe", opt=opt_probe)
         trainer_probe = trainer_partial(
             ssl_phase="probe",
             opt=opt_probe,
         )
-        trainer_probe.fit_and_test(model=model, datamodule=data_probe)
+        trainer_probe.fit_and_test(
+            model=model,
+            datamodule=data_probe,
+            ckpt_path=run.fit_ckpt_path,
+        )
 
     if opt_finetune.epochs > 0:
         LOGGER.info("Finetune")
@@ -98,4 +114,8 @@ def run_experiment(
             ssl_phase="finetune",
             opt=opt_finetune,
         )
-        trainer_finetune.fit_and_test(model=model, datamodule=data_finetune)
+        trainer_finetune.fit_and_test(
+            model=model,
+            datamodule=data_finetune,
+            ckpt_path=run.fit_ckpt_path,
+        )

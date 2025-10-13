@@ -9,7 +9,6 @@ from einops import rearrange
 from torch import Tensor
 
 
-
 def group_mods(
     x: dict[str, Tensor],
     fusion_mode: Literal[

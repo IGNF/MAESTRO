@@ -5,6 +5,7 @@ from typing import Literal
 import pytorch_lightning as pl
 from pytorch_lightning import Callback, LightningDataModule, LightningModule
 from pytorch_lightning.callbacks import (
+    EarlyStopping,
     LearningRateMonitor,
     ModelCheckpoint,
     TQDMProgressBar,
@@ -43,10 +44,12 @@ class SSLTrainer(pl.Trainer):
             self.lw_decay = opt.lw_decay
             self.final_factor = opt.final_factor
             self.monitor = opt.monitor
+            self.patience = opt.patience
         else:
             self.lw_decay = None
             self.final_factor = 1e7
             self.monitor = None
+            self.patience = None
 
         self.wd = opt.wd
         self.b1 = opt.b1
@@ -97,17 +100,26 @@ class SSLTrainer(pl.Trainer):
                     else None
                 ),
                 mode="max",
-                save_weights_only=True,
+                save_weights_only=False,
             ),
         )
+        if self.monitor is not None:
+            callbacks.append(
+                EarlyStopping(
+                    monitor=f"{self.ssl_phase}_{self.monitor}",
+                    patience=self.patience,
+                    mode="max",
+                ),
+            )
         return callbacks
 
     def fit_and_test(
         self,
         model: LightningModule,
         datamodule: LightningDataModule,
+        ckpt_path: str | None = None,
     ) -> None:
-        self.fit(model=model, datamodule=datamodule)
+        self.fit(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
 
         ckpt_path = self.checkpoint_callback.best_model_path
         if ckpt_path:

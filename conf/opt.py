@@ -51,6 +51,7 @@ class OptFinetuneConfig(OptConfig):
     lw_decay: float | None = None
     final_factor: float = 2
     monitor: str | None = None
+    patience: int | None = 5
 
 
 finetune_store = store(group="opt_finetune")

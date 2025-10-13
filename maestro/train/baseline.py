@@ -69,6 +69,31 @@ class BaselineModule(BaseModule):
 
                 model_dict = {"dofa": DOFABaseline, "croma": CROMABaseline}
                 self.model = model_dict[model](**model_args)
+            case "prithvi":
+                model_args = {
+                    "datasets": datasets,
+                    "backbone_size": model_size,
+                    "version": kwargs.get("version", "v2"),
+                    "freeze": freeze,
+                    "pretrained_path": pretrained_path,
+                    "type_head": type_head,
+                    "add_date_enc": add_date_enc,
+                    "keep_norm": keep_norm,
+                }
+
+                self.model = PrithviBaseline(**model_args)
+            case "satmae":
+                model_args = {
+                    "datasets": datasets,
+                    "backbone_size": model_size,
+                    "freeze": freeze,
+                    "pretrained_path": pretrained_path,
+                    "type_head": type_head,
+                    "fusion_mode": fusion_mode,
+                    "add_date_enc": add_date_enc,
+                    "keep_norm": keep_norm,
+                }
+                self.model = SatMAEBaseline(**model_args)
             case _:
                 msg = f"Invalid model name {model}. Not implemented"
                 raise ValueError(msg)

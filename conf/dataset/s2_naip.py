@@ -2,8 +2,12 @@
 
 from dataclasses import dataclass, field
 
-from conf.dataset.utils import (DatasetConfig, InputRasterConfig,
-                                PatchSizeConfig, TargetRasterConfig)
+from conf.dataset.utils import (
+    DatasetConfig,
+    InputRasterConfig,
+    PatchSizeConfig,
+    TargetRasterConfig,
+)
 from maestro.dataset.s2_naip import S2NAIPDataset
 
 

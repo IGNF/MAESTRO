@@ -9,6 +9,8 @@ from conf.datasets import DatasetsConfig
 from maestro.baselines.croma import CROMABaseline
 from maestro.baselines.dinov2 import Dinov2Baseline
 from maestro.baselines.dofa import DOFABaseline
+from maestro.baselines.prithvi import PrithviBaseline
+from maestro.baselines.satmae import SatMAEBaseline
 from maestro.train.base import BaseModule
 
 torch.set_float32_matmul_precision(precision="medium")
@@ -67,6 +69,34 @@ class BaselineModule(BaseModule):
 
                 model_dict = {"dofa": DOFABaseline, "croma": CROMABaseline}
                 self.model = model_dict[model](**model_args)
+            case "prithvi":
+                model_args = {
+                    "datasets": datasets,
+                    "interpolate": interpolate,
+                    "fusion_mode": fusion_mode,
+                    "backbone_size": model_size,
+                    "version": kwargs.get("version", "v2"),
+                    "freeze": freeze,
+                    "pretrained_path": pretrained_path,
+                    "type_head": type_head,
+                    "add_date_enc": add_date_enc,
+                    "keep_norm": keep_norm,
+                }
+
+                self.model = PrithviBaseline(**model_args)
+            case "satmae":
+                model_args = {
+                    "datasets": datasets,
+                    "interpolate": interpolate,
+                    "fusion_mode": fusion_mode,
+                    "backbone_size": model_size,
+                    "freeze": freeze,
+                    "pretrained_path": pretrained_path,
+                    "type_head": type_head,
+                    "add_date_enc": add_date_enc,
+                    "keep_norm": keep_norm,
+                }
+                self.model = SatMAEBaseline(**model_args)
             case _:
                 msg = f"Invalid model name {model}. Not implemented"
                 raise ValueError(msg)

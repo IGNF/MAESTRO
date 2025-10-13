@@ -32,7 +32,7 @@ class BaselineModule(BaseModule):
         use_ema: bool = False,
         keep_norm: bool = True,
         add_date_enc: bool = True,
-        **kwargs,  # noqa: ARG002, ANN003
+        **kwargs,  # noqa: ANN003
     ) -> None:
         super().__init__(datasets)
 

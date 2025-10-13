@@ -4,13 +4,8 @@ from hydra_zen import MISSING, builds, store
 
 from conf.dataset.flair import FLAIRConfig
 from conf.dataset.pastis_hd import PASTISHDConfig
+from conf.dataset.s2_naip import S2NAIPConfig
 from conf.dataset.treesatai_ts import TreeSatAITSConfig
-
-ALL_DATASETS = [
-    "flair",
-    "pastis_hd",
-    "treesatai_ts",
-]
 
 
 # It does not seems possible to have nested dataclasses at all config levels,
@@ -20,10 +15,20 @@ class DatasetsConfig:
 
     def __init__(
         self,
-        **kwargs,  # noqa: ANN003
+        root_dir: str,
+        filter_pretrain: list[str],
+        filter_finetune: list[str],
+        treesatai_ts: TreeSatAITSConfig,
+        pastis_hd: PASTISHDConfig,
+        flair: FLAIRConfig,
+        s2_naip: S2NAIPConfig,
     ) -> None:
         """Assign args to config attributes."""
-        self.__dict__ = kwargs
+        self.__dict__ = {
+            name_arg: val_arg
+            for name_arg, val_arg in locals().items()
+            if val_arg is not self
+        }
         self.__post_init__()
 
     def __post_init__(self) -> None:
@@ -32,10 +37,7 @@ class DatasetsConfig:
             if name_dataset not in self.__dict__:
                 msg = f"Invalid dataset name {name_dataset}. Not an attribute."
                 raise ValueError(msg)
-        self.allowed = {
-            name_dataset: getattr(self, name_dataset)
-            for name_dataset in self.filter_allowed
-        }
+
         self.pretrain = {
             name_dataset: getattr(self, name_dataset)
             for name_dataset in self.filter_pretrain
@@ -61,12 +63,12 @@ class DatasetsConfig:
 dataset_build = builds(
     DatasetsConfig,
     root_dir=MISSING,
-    filter_allowed=ALL_DATASETS,
-    filter_pretrain=ALL_DATASETS,
-    filter_finetune=ALL_DATASETS,
-    flair=FLAIRConfig(),
-    pastis_hd=PASTISHDConfig(),
+    filter_pretrain=MISSING,
+    filter_finetune=MISSING,
     treesatai_ts=TreeSatAITSConfig(),
+    pastis_hd=PASTISHDConfig(),
+    flair=FLAIRConfig(),
+    s2_naip=S2NAIPConfig(),
 )
 
 dataset_store = store(group="datasets")

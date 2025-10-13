@@ -30,46 +30,46 @@ class Dinov2Baseline(BaseModule):
     def __init__(
         self,
         datasets: DatasetsConfig,
-        backbone_size: str,
+        backbone_size: Literal["small", "base", "large", "huge"],
         freeze: bool = False,
-        type_head: Literal["linear", "attentive"] = "linear",
-        fusion_mode: Literal["shared", "monotemp"] = "shared",
-        weight_source: Literal["imagenat", "sat"] = "imagenat",
         pretrained_path: str | None = None,
+        weight_source: Literal["imagenat", "sat"] = "imagenat",
+        type_head: Literal["linear", "attentive"] = "attentive",
+        fusion_mode: Literal["shared", "monotemp"] = "shared",
         add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
         date_dim: int = 8,
         keep_norm: bool = True,
         **kwargs,  # noqa: ANN003
     ) -> None:
-        """Create the dinov2 encoder model using transformers.
+        """Create the DINOv2 encoder model using transformers.
 
         Parameters
         ----------
         datasets: DatasetsConfig
             The dataset config used in the probing/finetuning phase.
         backbone_size: str
-            Defines the backbone to use. To choose in "small", "base", "large", "huge".
+            Backbone size to use. To choose in "small", "base", "large", "huge".
         freeze: bool
-            To freeze or not to freeze the DinoV2 backbone.
-        type_head: str
-           Segmentation head to use. Either "linear" (default) or "attentive".
-        fusion_mode: str
-           Fusion strategy. Either "shared" (default) or "monotemp" (default).
-        weight_source: str
-           Either "random", "imagenat" (default) or "sat".
+            Whether to freeze the backbone.
         pretrained_path: str
-           Path to the location of the pretrained weights.
+            Path to the location of the pretrained weights.
+        weight_source: str
+            Either "imagenat" (default) or "sat".
+        type_head: str
+            Segmentation head to use. Either "linear" or "attentive".
+        fusion_mode: str
+            Fusion strategy. Either "shared" or "monotemp".
         add_date_enc: bool
-           Whether to add the date encodings to the embeddings.
+            Whether to add date encodings to the embeddings.
         fac_date_enc: float
-           Factor used to compute the date encodings.
+            Factor used to compute the date encodings.
         date_dim: int
-           Dimension of the date embeddings.
+            Dimension of the date embeddings.
         keep_norm: bool
-           Choose to keep the final layernorm layer.
+            Whether to keep the final layernorm layer.
         kwargs:
-           Arguments to pass to `BaseModel` constructor.
+            Arguments to pass to `BaseModel` constructor.
 
         """
         self.dataset = datasets.dataset
@@ -370,9 +370,13 @@ class Dinov2Baseline(BaseModule):
     def forward(
         self,
         batch: dict[str, Tensor],
-        ssl_phase: Literal["probe", "finetune"],
-        stage: Literal["train", "val", "test"],
-    ) -> tuple[Tensor | None, Tensor | None, Tensor | None, Tensor | None]:
+        ssl_phase: Literal["probe", "finetune"],  # noqa: ARG002
+    ) -> tuple[
+        dict[str, Tensor] | None,
+        None,
+        None,
+        dict[str, Tensor] | None,
+    ]:
         """Dinov2 forward pass.
 
         Parameters
@@ -382,44 +386,34 @@ class Dinov2Baseline(BaseModule):
         ssl_phase: str
             SSL phase (pretrain, probe, finetune). Only probing and finetuning
             are needed for baselines.
-        stage: str
-            Learning stage: train, val, test.
 
         Returns
         -------
         tuple: DinoV2's outputs.
 
         """
-        # Forward pass through the dinov2 encoder, get encoder's feature maps.
+        batch = self.resize_and_rescale(batch)
+
         group_batch = self.group(batch)
-        x, dates = {}, {}
 
+        x_enc, dates = {}, {}
         for name_mod in self.dataset.inputs:
-            input_mod = group_batch[name_mod]
-
-            x_tokenized = self.patch_embed[name_mod](input_mod)
-
             encoder_mod = "shared" if self.fusion_mode == "shared" else name_mod
 
-            x_enc = self.encoder[encoder_mod](x_tokenized)["last_hidden_state"]
+            x_tokenized = self.patch_embed[name_mod](group_batch[name_mod])
+            x_mod = self.encoder[encoder_mod](x_tokenized)["last_hidden_state"]
 
             if self.keep_norm:
-                x_enc = self.layernorm(x_enc)
+                x_mod = self.layernorm(x_mod)
 
-            x_enc = x_enc[:, 1:]
+            x_mod = x_mod[:, 1:]  # ignore CLS token
 
-            x[name_mod] = x_enc
+            x_enc[name_mod] = x_mod
             dates[name_mod] = batch[f"{name_mod}_dates"]
 
         if self.add_date_enc:
             ref_date = batch["ref_date"]
-            x = self._add_date_encodings(x, dates, ref_date)
+            x_enc = self._add_date_encodings(x_enc, dates, ref_date)
 
-        loss_pred, log_input, log_pred, log_target = self.compute_loss_pred(
-            x,
-            batch,
-            ssl_phase,
-            stage,
-        )
-        self.metrics[f"loss_pred_{stage}"].update(loss_pred)
-        return None, log_input, log_pred, log_target, loss_pred
+        logits = self.compute_logits(x_enc)
+        return batch, None, None, logits

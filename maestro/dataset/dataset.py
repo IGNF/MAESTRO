@@ -111,7 +111,6 @@ class GenericDataset(Dataset, ABC):
                 meta[f"{name_mod}_path"],
                 meta[f"{name_mod}_dates"],
                 meta.get(f"{name_mod}_mask", None),
-                meta.get(f"{name_mod}_mask_bands", None),
                 meta.get(f"{name_mod}_h5_name", None),
                 meta.get(f"{name_mod}_h5_mask", None),
                 start[name_mod],
@@ -128,7 +127,6 @@ class GenericDataset(Dataset, ABC):
         path_mod: Path,
         dates_mod: np.ndarray,
         mask: Path | None,
-        mask_bands: list[list[int]],
         h5_name: str | None,
         h5_mask: str | None,
         start: tuple[int],
@@ -167,11 +165,9 @@ class GenericDataset(Dataset, ABC):
                     input_mod = self.unflatten(input_mod, 0, (len(dates_mod), -1))
                     input_mod = input_mod[:, bands]
                 if use_mask and mask is not None:
-                    bands = mask_bands if mask_bands else bands
                     with rasterio.open(mask) as src:
                         mask_mod = src.read(window=window)
                         mask_mod = self.unflatten(mask_mod, 0, (len(dates_mod), -1))
-                        mask_mod = mask_mod[:, bands, :, :]
             case ".npy":
                 npy_file = np.load(path_mod, mmap_mode="r")
                 if npy_file.ndim < 4:  # noqa: PLR2004
@@ -212,7 +208,9 @@ class GenericDataset(Dataset, ABC):
             diff_mod = np.mean(diff_mod, axis=(2, 3, 4), keepdims=True)
             median_inds = np.nanargmin(diff_mod, axis=1, keepdims=True)
             input_mod = np.take_along_axis(input_mod, median_inds, axis=1).squeeze(1)
-            dates_mod = np.take_along_axis(dates_mod, median_inds, axis=1).squeeze(1)
+            dates_mod = np.take_along_axis(dates_mod, median_inds, axis=1).squeeze(
+                (1, -2, -1),
+            )
 
         input_mod = input_mod.astype(np.float32)
         if log_scale:

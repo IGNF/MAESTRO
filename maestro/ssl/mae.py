@@ -19,7 +19,8 @@ class MAE(BaseMIM):
         self,
         datasets: DatasetsConfig,
         mask: MaskConfig,
-        fusion_mode: Literal["msgfm", "shared", "monotemp", "mod", "group"],
+        interpolate: Literal["nearest", "bilinear", "bicubic"],
+        fusion_mode: Literal["shared", "monotemp", "mod", "group"],
         inter_depth: tuple[int],
         model: Literal["mae"],
         num_levels: Literal[1],
@@ -33,23 +34,20 @@ class MAE(BaseMIM):
         decoder_heads: int,
         decoder_dim_head: int,
         decoder_mlp_ratio: float,
-        type_head: Literal["linear", "attentive"] = "linear",
-        loss_fn: Literal[torch.abs, torch.square] = torch.square,
-        norm_pix_loss: bool = True,
+        type_head: Literal["linear", "attentive"] = "attentive",
         fac_abs_enc: float = 1.0,
         fac_date_enc: float = 1.0,
         **kwargs,  # noqa: ANN003, ARG002
     ) -> None:
         super().__init__(
             datasets=datasets,
+            interpolate=interpolate,
             fusion_mode=fusion_mode,
             model=model,
             num_levels=num_levels,
             embed_dim=embed_dim,
             decoder_dim=decoder_dim,
             type_head=type_head,
-            loss_fn=loss_fn,
-            norm_pix_loss=norm_pix_loss,
             fac_abs_enc=fac_abs_enc,
             fac_date_enc=fac_date_enc,
         )
@@ -296,7 +294,7 @@ class MAE(BaseMIM):
         """Apply MAE encoder."""
         x = self.encode_or_decode(x, model=self.encoder)
         if self.encoder_inter:
-            x = self.encode_all(x, model=self.encoder_inter)
+            x = self.encode_or_decode_all(x, model=self.encoder_inter)
         return x
 
     def encoder_to_decoder(self, x: dict[str, Tensor]) -> dict[str, Tensor]:

@@ -18,6 +18,7 @@ class S2NAIPConfig(DatasetConfig):  # noqa: D101
     test_pretrain: bool = True
     repeats: int = 5
     crop_meters: float = 120
+    grid_pos_enc: int | None = 192
 
     ref_input: str | None = None  # defines grid for raster targets
     log_inputs: list[str] = field(

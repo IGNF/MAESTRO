@@ -1,4 +1,4 @@
-"""Base module for foundation model baselines."""
+"""Base module for baseline FMs."""
 
 from abc import ABC, abstractmethod
 from functools import partial
@@ -9,32 +9,24 @@ import torch.nn.functional as F  # noqa: N812
 from einops import rearrange
 from torch import Tensor
 from torch.nn import Module, ModuleDict
-from torchmetrics import MeanMetric
 
 from conf.dataset.utils import RasterConfig
 from conf.datasets import DatasetsConfig
 from maestro.layers.head import ClassificationHead, PixelifyHead
-from maestro.layers.overlay import (
-    create_overlay,
-    onehot_pred_from_logits,
-    onehot_target_from_batch,
-)
 from maestro.layers.utils import encode_dates, group_mods, ungroup_mods
-from maestro.train.metric import MonoLabelMetric, MultiLabelMetric
-
-RGB_BANDS = 3
 
 
 class BaseModule(Module, ABC):
     """Base Module for baselines."""
 
-    def __init__(  # noqa: C901
+    def __init__(
         self,
         datasets: DatasetsConfig,
+        interpolate: Literal["nearest", "bilinear", "bicubic"],
+        fusion_mode: Literal["shared", "monotemp", "mod", "late-croma", "inter-croma"],
         patch_size: int,
         embed_dim: int,
-        type_head: Literal["linear", "attentive"] = "linear",
-        fusion_mode: Literal["shared", "monotemp", "croma-intergroup"] = "shared",
+        type_head: Literal["linear", "attentive"] = "attentive",
         add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
         date_dim: int = 8,
@@ -44,6 +36,7 @@ class BaseModule(Module, ABC):
         super().__init__(**kwargs)
 
         self.dataset = datasets.dataset
+        self.interpolate = interpolate
         self.type_head = type_head
         self.patch_size = patch_size
         self.fusion_mode = fusion_mode
@@ -99,32 +92,6 @@ class BaseModule(Module, ABC):
                     target.num_classes,
                 )
 
-        self.loss_pred = {}
-        self.metrics = ModuleDict()
-        for name_target, target in datasets.dataset.targets.items():
-            match target.type_target:
-                case "classif" | "segment":
-                    self.loss_pred[name_target] = F.cross_entropy
-                    metric_partial = partial(
-                        MonoLabelMetric,
-                        type_target=target.type_target,
-                        num_classes=target.num_classes,
-                    )
-                case "multilabel_classif":
-                    self.loss_pred[name_target] = F.binary_cross_entropy_with_logits
-                    metric_partial = partial(
-                        MultiLabelMetric,
-                        num_labels=target.num_classes,
-                    )
-            for stage in ("train", "val", "test"):
-                self.metrics[f"{name_target}_{stage}"] = metric_partial()
-
-        for name_loss in ("loss_rec", "loss_pred"):
-            for stage in ("train", "val", "test"):
-                self.metrics[f"{name_loss}_{stage}"] = MeanMetric(
-                    dist_sync_on_step=False,
-                )
-
         # flattening/unflattening of date dimensions
         self.group = partial(
             group_mods,
@@ -171,7 +138,6 @@ class BaseModule(Module, ABC):
     ) -> dict[str, Tensor]:
         """Add positional and date encodings before encoder."""
         x_enc = self.ungroup(x_enc)
-
         dates_k = set(dates.keys())
         x_k = set(x_enc.keys())
 
@@ -184,14 +150,11 @@ class BaseModule(Module, ABC):
 
         return self.group(x_enc)
 
-    def compute_loss_pred(
+    def compute_logits(
         self,
         x_enc: dict[str, Tensor],
-        batch: dict[str, Tensor],
-        ssl_phase: Literal["pretrain", "probe", "finetune"],
-        stage: Literal["train", "val", "test"],
-    ) -> Tensor:
-        """Shared loss computation for all MIM modules."""
+    ) -> dict[str, Tensor]:
+        """Compute logits."""
         x_enc = self.ungroup(x_enc)
 
         ref_input = self.dataset.ref_input
@@ -224,77 +187,31 @@ class BaseModule(Module, ABC):
             [x_enc[name_mod].flatten(1, 2) for name_mod in x_enc],
             dim=1,
         )
-        loss_pred = 0
-        log_inputs, log_preds, log_targets = {}, {}, {}
+        logits = {}
         for name_target, target in self.dataset.targets.items():
-            targets = batch[name_target]
-            if target.type_target == "segment":
-                overlay_key = next(x for x in self.dataset.log_inputs if x in batch)
-                overlay_img = batch[overlay_key][0, 0, :RGB_BANDS]
-                onehot_target = onehot_target_from_batch(
-                    batch[name_target][0, 0, 0],
-                    target.num_classes,
-                    target.missing_val,
-                )
-                log_inputs[f"{ssl_phase}_{name_target}_{stage}/_input"] = overlay_img
-                log_targets[f"{ssl_phase}_{name_target}_{stage}/_target"] = (
-                    create_overlay(
-                        overlay_img,
-                        onehot_target,
-                        target.num_classes,
-                    )
-                )
             match target.type_target:
                 case "segment":
-                    logits = self.heads[name_target](x_ref, ssl_phase)
-                    onehot_pred = onehot_pred_from_logits(
-                        logits[0, 0],
-                        target.num_classes,
+                    logits[name_target] = self.heads[name_target](
+                        x_ref,
+                        ssl_phase="finetune",
                     )
-                    log_preds[f"{ssl_phase}_{name_target}_{stage}/_pred"] = (
-                        create_overlay(
-                            overlay_img,
-                            onehot_pred,
-                            target.num_classes,
-                        )
+                case "multilabel_classif" | "classif":
+                    logits[name_target] = self.heads[name_target](
+                        x_enc,
+                        ssl_phase="finetune",
                     )
-                    logits = rearrange(logits, "b 1 c h w -> (b h w) c")
-                    targets = rearrange(targets, "b 1 1 h w -> (b h w)")
-                    targets = targets.long()
-                case "multilabel_classif":
-                    logits = self.heads[name_target](x_enc, ssl_phase)
-                    targets = targets.float()
-                case "classif":
-                    logits = self.heads[name_target](x_enc, ssl_phase)
-                    targets = targets.long()
+        return logits
 
-            if targets.ndim > 1:
-                inds = (targets != target.missing_val).all(dim=1)
-            else:
-                inds = targets != target.missing_val
-
-            inds = inds.nonzero().squeeze(dim=1)
-            if len(inds) == 0:
-                continue
-
-            logits_selected = torch.index_select(
-                logits,
-                dim=0,
-                index=inds,
-            )
-            targets_selected = torch.index_select(
-                targets,
-                dim=0,
-                index=inds,
-            )
-            loss_pred += self.loss_pred[name_target](
-                logits_selected,
-                targets_selected,
-            )
-            self.metrics[f"{name_target}_{stage}"].update(
-                logits_selected,
-                targets_selected,
-            )
-        if not isinstance(loss_pred, Tensor):
-            loss_pred = 0 * x_enc.mean()
-        return loss_pred, log_inputs, log_preds, log_targets
+    def resize_and_rescale(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
+        """Resize and/or rescale input rasters based on dataset config."""
+        for name_mod, mod in self.dataset.inputs.items():
+            batch[name_mod] = F.interpolate(
+                batch[name_mod].flatten(0, 1),
+                size=(mod.image_size,) * 2,
+                mode=self.interpolate,
+            ).unflatten(0, (-1, mod.num_dates))
+            if mod.rescale_elev:
+                batch[name_mod][:, :, 1:] = 30 * (
+                    batch[name_mod][:, :, :1] - batch[name_mod][:, :, 1:]
+                )
+        return batch

@@ -14,78 +14,87 @@
 
 We introduce **MAESTRO**, a tailored adaptation of the Masked Autoencoder (MAE) framework that effectively orchestrates the use of multimodal, multitemporal, and multispectral Earth Observation (EO) data. Evaluated on four EO datasets, MAESTRO sets a new state-of-the-art on tasks that strongly rely on multitemporal dynamics, while remaining highly competitive on others.
 
+We make the following contributions:
+- **Extensive benchmarking of multimodal and multitemporal SSL:** Impact evaluation of various fusion strategies for multimodal and multitemporal SSL.
+- **Patch-group-wise normalization:** Novel normalization scheme that normalizes reconstruction targets patch-wise within groups of highly correlated spectral bands.
+- **MAESTRO:** Novel adaptation of the MAE that combines optimized fusion strategies with our tailored patch-group-wise normalization.
+
 <p align="center">
   <img src="media/Maestro_Overview.png" alt="MAESTRO Overview" width="750"/><br>
   <em>Figure 1 — MAESTRO overview.</em>
 </p>
 
-## Contributions
 
-- **Extensive Benchmarking of Multimodal/Multitemporal SSL:** Impact evaluation of various fusion strategies for multimodal and multitemporal SSL.
-- **Novel Patch-group-wise Normalization:** Novel normalization scheme that normalizes reconstruction targets patch-wise within groups of highly correlated spectral bands.
-- **MAESTRO:** Novel adaptation of the MAE that combines optimized fusion strategies with our tailored patch-group-wise normalization.
-
-<p align="center">
-  <img src="media/Maestro_Fusion.png" alt="MAESTRO fusion modes" width="750"/><br>
-  <em>Figure 2 — Token-based fusion modes benchmarked for multimodal and multitemporal SSL.</em>
-</p>
-
-## Results
+## Intra-dataset Evaluation
 
 <p align="center">
   <em>
-    Table 1 — Performance comparison of MAESTRO, baseline FMs, and supervised ViTs.<br>
-    We report weighted F1 score (%) on TreeSatAI-TS and mIoU (%) on PASTIS-HD, FLAIR#2, and FLAIR-HUB.<br>
-    MAESTRO† models were pre-trained for twice the number of epochs.
+    Table 1 — Intra-dataset comparison of MAESTRO, supervised ViTs, and previous SOTA.<br>
+    We report wF1 (%) on TreeSatAI-TS and mIoU (%) on PASTIS-HD, FLAIR#2, and FLAIR-HUB.<br>
+    MAESTRO† models are pre-trained for twice the number of epochs.
   </em>
 
-| Model              | Size  | Fusion mode   | TreeSatAI-TS | PASTIS-HD | FLAIR#2 | FLAIR-HUB |
-|--------------------|-------|---------------|--------------|-----------|---------|-----------|
-| **MAESTRO (ours)** |       |               |              |           |         |           |
-| MAESTRO            | Base  | group         | 78.5               | 68.8                | 63.8                | 64.9               |
-| MAESTRO            | Base  | inter-group   | 78.8               | 68.6                | 62.6                | **65.9** 🔴↓**0.1**|
-| MAESTRO†           | Base  | group         | 79.1               | 68.8                | **64.0** 🔴↓**0.2** | 64.8               |
-| MAESTRO†           | Base  | inter-group   | **79.4** 🟢↑**2.7**| **69.0** 🟢↑**2.5** | 63.3                | 65.8               |
-| **Baseline FMs**   |       |               |              |           |         |           |
-| DINO-v2            | Base  | shared        | **76.7**     | 64.4      | **64.2**| **66.0**  |
-| DINO-v2 sat.       | Large | shared        | 76.3         | 64.0      | 63.5    | **66.0**  |
-| DOFA               | Base  | shared        | 76.0         | 62.9      | 62.3    | 65.1      |
-| CROMA              | Base  | inter-croma   | 70.5         | 65.0      | 39.0    | 44.3      |
-| AnySat             | Base  |               | 75.1         | **66.5**  | 55.1    |           |
-| **Supervised ViTs**|       |               |              |           |         |           |
-| ViT                | Base  | group         | **75.7**     | **64.6**  | **58.3**| 61.6      |
-| ViT                | Base  | inter-group   | 75.6         | 64.5      | 58.2    | **62.1**  |
-| **Previous SOTA**  |       |               |              |           |         |           |
-|                    |       |               | 75.1         | 66.5      | 64.1    | 64.3  |
+| Model              | TreeSatAI-TS | PASTIS-HD | FLAIR#2 | FLAIR-HUB |
+|--------------------|--------------|-----------|---------|-----------|
+| MAESTRO  (ours)    | 78.8         | 68.6      | 62.6    | **65.9** 🟢↑**1.6**|
+| MAESTRO† (ours)    | **79.4** 🟢↑**3.8** | **69.0** 🟢↑**2.5** | **63.3** 🔴↓**0.8**| 65.8 |
+| ViT                | 75.6         | 64.5      | 58.2    | 62.1      |
+| Previous SOTA      | 75.1         | 66.5      | 55.1    | 64.3      |
 </p>
+
+
+## Cross-dataset Evaluation
+
+<p align="center">
+  <em>
+    Table 2 — Cross-dataset comparison of MAESTRO and adapted baseline FMs. The baseline FMs are adapted to handle an arbitrary number of dates and/or to retain all modality bands. <br>
+    We report wF1 (%) on TreeSatAI-TS and mIoU (%) on PASTIS-HD, FLAIR#2, and FLAIR-HUB.<br>
+  </em>
+
+| Model              | Pre-training dataset | TreeSatAI-TS | PASTIS-HD | FLAIR#2 | FLAIR-HUB |
+|--------------------|-----------------------|--------------|-----------|---------|-----------|
+| MAESTRO (ours)     | FLAIR-HUB             | **79.6**     | **68.0**  | -       | -         |
+| MAESTRO (ours)     | S2-NAIP urban         | 78.8         | 67.4      | 62.6    | 64.6      |
+| DINO-v2            | LVD-142M              | 76.7         | 64.4      | **64.2**| 66.0      |
+| DINO-v2 sat.       | Maxar Vivid2          | 76.3         | 64.0      | 63.5    | **66.0**  |
+| DOFA               | DOFA MM               | 76.0         | 62.9      | 62.3    | 65.1      |
+| CROMA              | SSL4EO                | 70.5         | 65.0      | 39.0    | 44.3      |
+| Prithvi-EO-2.0     | HLS                   | 75.6         | 66.2      | 41.8    | 44.9      |
+| SatMAE             | fMoW RGB+S            | 76.9         | 66.6      | 42.5    | 45.0      |
+</p>
+
+
 
 
 
 ## Datasets
-Our implementation already supports 4 datasets.
+Our implementation already supports 5 datasets.
 
 **[TreeSatAI-TS](https://huggingface.co/datasets/IGNF/TreeSatAI-Time-Series)**<br />
-Tree species identification, with 15 multi-label classes.
-  - Extent: 50,381 tiles of 60 × 60 m in Germany.
+Tree species identification in Germany, with 15 multi-label classes.
+  - Extent: 50,381 tiles of 60 × 60 m in Germany, covering 181 km².
   - Modalities: aerial imagery RGB + NIR (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
 
 **[PASTIS-HD](https://huggingface.co/datasets/IGNF/PASTIS-HD)**<br />
-Agricultural crop segmentation, with 19 semantic classes.
-  - Extent: 433 tiles of 1280 × 1280 m in France.
+Agricultural crop segmentation in France, with 19 semantic classes.
+  - Extent: 433 tiles of 1280 × 1280 m, covering 709 km².
   - Modalities: VHR satellite imagery SPOT 6-7 (1 m), Sentinel-1 time series, Sentinel-2 time series.
 
 **[FLAIR#2](https://arxiv.org/abs/2305.14467)**<br />
-Land cover segmentation, with 12 semantic classes.
-  - Extent: 77,762 tiles of 102.4 × 102.4 m in France.
+Land cover segmentation in France, with 12 semantic classes. Note that the FLAIR#2 version used here is not the original release, but a regenerated version obtained by refiltering FLAIR-HUB.
+  - Extent: 77,762 tiles of 102.4 × 102.4 m, covering 815 km².
   - Modalities: Aerial and elevation imagery RGB + NIR + DEM + DSM (0.2 m), Sentinel-2 time series.
 
 **[FLAIR-HUB](https://huggingface.co/datasets/IGNF/FLAIR-HUB)**<br />
-Land cover segmentation, with 15 semantic classes.
-  - Extent: 241,100 tiles of 102.4 × 102.4 m in France.
+Land cover segmentation in France, with 15 semantic classes.
+  - Extent: 241,100 tiles of 102.4 × 102.4 m, covering 2,528 km².
   - Modalities: Aerial and elevation imagery RGB + NIR + DEM +
 DSM (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
 
-Note that our version of FLAIR#2 is not the original release but a regenerated version derived through the refiltering of FLAIR-HUB.
+**[S2-NAIP urban](https://huggingface.co/datasets/allenai/s2-naip)**<br />
+Super-resolution in urban areas of the United States. To construct this urban subset, the original S2-NAIP footprints are intersected with the urban set defined in [Zooming-in zooming-out](https://github.com/allenai/satlas-super-resolution), which is limited to locations within a 5 km radius of U.S. cities with populations of at least 50,000.
+  - Extent: 167,397 tiles of size 640 m × 640 m, covering 68,565 km².
+  - Modalities: Aerial NAIP imagery RGB + NIR (1.25 m), Sentinel-1 time series, Sentinel-2 time series.
 
 ## 📝 Preliminary Note (August 2025)
 
@@ -106,43 +115,53 @@ poetry install
 
 Then, you can start from the following minimal examples.
 
-On TreeSatAI-TS:
+Intra-dataset MAESTRO on TreeSatAI-TS:
 ```bash
 poetry run python main.py \
-        model.model=mae \
-        model.model_size=medium \
-        run.exp_name=mae-m_treesat \
-        run.exp_dir=/path/to/experiments/dir \
-        datasets.root_dir=/path/to/dataset/dir \
-        datasets.treesatai_ts.rel_dir=TreeSatAI-TS \
-        datasets.filter_pretrain=[treesatai_ts] \
-        datasets.filter_finetune=[treesatai_ts]
+        model.model=mae model.model_size=medium \
+        opt_pretrain.epochs=100 opt_probe.epochs=10 opt_finetune.epochs=50 \
+        datasets.name_dataset=treesatai_ts \
+        datasets.root_dir=/path/to/dataset/dir datasets.treesatai_ts.rel_dir=TreeSatAI-TS \
+        run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_treesat
 ```
 
-On PASTIS-HD:
+Intra-dataset MAESTRO on PASTIS-HD:
 ```bash
 poetry run python main.py \
-        model.model=mae \
-        model.model_size=medium \
-        run.exp_name=mae-m_pastis \
-        run.exp_dir=/path/to/experiments/dir \
-        datasets.root_dir=/path/to/dataset/dir \
-        datasets.pastis_hd.rel_dir=PASTIS-HD \
-        datasets.filter_pretrain=[pastis_hd] \
-        datasets.filter_finetune=[pastis_hd]
+        model.model=mae model.model_size=medium \
+        opt_pretrain.epochs=100 opt_probe.epochs=10 opt_finetune.epochs=50 \
+        datasets.name_dataset=pastis_hd \
+        datasets.root_dir=/path/to/dataset/dir datasets.pastis_hd.rel_dir=PASTIS-HD \
+        run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_pastis
 ```
 
-On FLAIR-HUB:
+Intra-dataset MAESTRO on FLAIR-HUB:
 ```bash
 poetry run python main.py \
-        model.model=mae \
-        model.model_size=medium \
-        run.exp_name=mae-m_flair \
-        run.exp_dir=/path/to/experiments/dir \
-        datasets.root_dir=/path/to/dataset/dir \
-        datasets.flair.rel_dir=FLAIR-HUB \
-        datasets.filter_pretrain=[flair] \
-        datasets.filter_finetune=[flair]
+        model.model=mae model.model_size=medium \
+        opt_pretrain.epochs=100 opt_probe.epochs=15 opt_finetune.epochs=100 \
+        datasets.name_dataset=flair \
+        datasets.root_dir=/path/to/dataset/dir datasets.flair.rel_dir=FLAIR-HUB \
+        run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_flair
+```
+
+Cross-dataset MAESTRO from S2-NAIP urban to TreeSatAI-TS:
+```bash
+poetry run python main.py \
+        model.model=mae model.model_size=medium \
+        opt_pretrain.epochs=15 opt_probe.epochs=0 opt_finetune.epochs=0 \
+        datasets.name_dataset=s2_naip \
+        datasets.root_dir=/path/to/dataset/dir datasets.s2_naip.rel_dir=s2-naip-urban \
+        run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_s2-naip && \
+poetry run python main.py \
+        model.model=mae model.model_size=medium \
+        opt_pretrain.epochs=0 opt_probe.epochs=10 opt_finetune.epochs=50 \
+        datasets.name_dataset=treesatai_ts \
+        datasets.root_dir=/path/to/dataset/dir datasets.treesatai_ts.rel_dir=TreeSatAI-TS \
+        datasets.treesatai_ts.aerial.image_size=240 datasets.treesatai_ts.aerial.patch_size.mae=16 \
+        datasets.treesatai_ts.s1_asc.name_embed=s1 datasets.treesatai_ts.s1_des.name_embed=s1 \
+        run.exp_dir=/path/to/experiments/dir run.load_name=mae-m_s2-naip run.exp_name=mae-m_s2-naip-x-treesat
+
 ```
 
 Most hyperparameters can be adapted through the hydra-zen CLI.
@@ -155,7 +174,7 @@ For questions or contributions, please open an issue or contact the authors.
 
 ## Reference
 
-If you use this code, kindly cite:
+If you use this code, please cite:
 
 ```bibtex
 @article{labatie2025maestro,

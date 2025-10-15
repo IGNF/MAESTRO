@@ -14,12 +14,11 @@ from tests import TEST_DATA_DIR
 def datasets_treesat():
     return DatasetsConfig(
         root_dir=TEST_DATA_DIR,
+        name_dataset="treesatai_ts",
         treesatai_ts=TreeSatAITSConfig(rel_dir=""),
         pastis_hd=PASTISHDConfig(),
         flair=FLAIRConfig(),
         s2_naip=S2NAIPConfig(),
-        filter_pretrain=["treesatai_ts"],
-        filter_finetune=["treesatai_ts"],
     )
 
 

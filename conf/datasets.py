@@ -16,8 +16,7 @@ class DatasetsConfig:
     def __init__(
         self,
         root_dir: str,
-        filter_pretrain: list[str],
-        filter_finetune: list[str],
+        name_dataset: str,
         treesatai_ts: TreeSatAITSConfig,
         pastis_hd: PASTISHDConfig,
         flair: FLAIRConfig,
@@ -33,29 +32,11 @@ class DatasetsConfig:
 
     def __post_init__(self) -> None:
         """Check validity of dataset names and further define non configurable attrs."""
-        for name_dataset in self.filter_pretrain + self.filter_finetune:
-            if name_dataset not in self.__dict__:
-                msg = f"Invalid dataset name {name_dataset}. Not an attribute."
-                raise ValueError(msg)
+        if self.name_dataset not in self.__dict__:
+            msg = f"Invalid dataset name {self.name_dataset}. Not an attribute."
+            raise ValueError(msg)
 
-        self.pretrain = {
-            name_dataset: getattr(self, name_dataset)
-            for name_dataset in self.filter_pretrain
-        }
-        self.finetune = {
-            name_dataset: getattr(self, name_dataset)
-            for name_dataset in self.filter_finetune
-        }
-
-        # temporary restriction to single datasets
-        names_dataset = self.filter_pretrain
-        name_dataset = self.filter_pretrain[0]
-        dataset = self.pretrain[name_dataset]
-
-        if len(names_dataset) > 1:
-            msg = "Multi-dataset pretraining/finetuning not implemented yet."
-            raise NotImplementedError(msg)
-
+        dataset = getattr(self, self.name_dataset)
         self.dataset_class = dataset.dataset_class
         self.dataset = dataset
 
@@ -63,8 +44,7 @@ class DatasetsConfig:
 dataset_build = builds(
     DatasetsConfig,
     root_dir=MISSING,
-    filter_pretrain=MISSING,
-    filter_finetune=MISSING,
+    name_dataset=MISSING,
     treesatai_ts=TreeSatAITSConfig(),
     pastis_hd=PASTISHDConfig(),
     flair=FLAIRConfig(),

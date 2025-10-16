@@ -2,8 +2,7 @@
 <h4 align="center">Official implementation for <a href="https://arxiv.org/abs/2508.10894">Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data</a></h4>
 <p align="center">
   <a href="#abstract">Abstract</a> |
-  <a href="#contributions">Contributions</a> |
-  <a href="#results">Results</a> |
+  <a href="#intra-dataset-evaluation">Results</a> |
   <a href="#datasets">Datasets</a> |
   <a href="#-getting-started">Getting Started</a>
 </p>
@@ -12,9 +11,9 @@
 
 ## Abstract
 
-We introduce **MAESTRO**, a tailored adaptation of the Masked Autoencoder (MAE) framework that effectively orchestrates the use of multimodal, multitemporal, and multispectral Earth Observation (EO) data. Evaluated on four EO datasets, MAESTRO sets a new state-of-the-art on tasks that strongly rely on multitemporal dynamics, while remaining highly competitive on others.
+We introduce **MAESTRO**, a tailored adaptation of the Masked Autoencoder (MAE) framework that effectively orchestrates the use of multimodal, multitemporal, and multispectral Earth Observation (EO) data. Evaluated on four EO datasets, MAESTRO sets a new state-of-the-art on tasks that strongly rely on multitemporal dynamics, while remaining highly competitive on tasks dominated by a single monotemporal modality.
 
-We make the following contributions:
+Our contributions are as follows:
 - **Extensive benchmarking of multimodal and multitemporal SSL:** Impact evaluation of various fusion strategies for multimodal and multitemporal SSL.
 - **Patch-group-wise normalization:** Novel normalization scheme that normalizes reconstruction targets patch-wise within groups of highly correlated spectral bands.
 - **MAESTRO:** Novel adaptation of the MAE that combines optimized fusion strategies with our tailored patch-group-wise normalization.
@@ -37,9 +36,9 @@ We make the following contributions:
 | Model              | TreeSatAI-TS | PASTIS-HD | FLAIR#2 | FLAIR-HUB |
 |--------------------|--------------|-----------|---------|-----------|
 | MAESTRO  (ours)    | 78.8         | 68.6      | 62.6    | **65.9** 🟢↑**1.6**|
-| MAESTRO† (ours)    | **79.4** 🟢↑**3.8** | **69.0** 🟢↑**2.5** | **63.3** 🔴↓**0.8**| 65.8 |
+| MAESTRO† (ours)    | **79.4** 🟢↑**3.8** | **69.0** 🟢↑**2.5** | 63.3 🔴↓**0.8**| 65.8 |
 | ViT                | 75.6         | 64.5      | 58.2    | 62.1      |
-| Previous SOTA      | 75.1         | 66.5      | 55.1    | 64.3      |
+| Previous SOTA      | 75.1         | 66.5      | **64.1**    | 64.3      |
 </p>
 
 
@@ -72,7 +71,7 @@ Our implementation already supports 5 datasets.
 
 **[TreeSatAI-TS](https://huggingface.co/datasets/IGNF/TreeSatAI-Time-Series)**<br />
 Tree species identification in Germany, with 15 multi-label classes.
-  - Extent: 50,381 tiles of 60 × 60 m in Germany, covering 181 km².
+  - Extent: 50,381 tiles of 60 × 60 m, covering 181 km².
   - Modalities: aerial imagery RGB + NIR (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
 
 **[PASTIS-HD](https://huggingface.co/datasets/IGNF/PASTIS-HD)**<br />
@@ -96,11 +95,6 @@ Super-resolution in urban areas of the United States. To construct this urban su
   - Extent: 167,397 tiles of size 640 m × 640 m, covering 68,565 km².
   - Modalities: Aerial NAIP imagery RGB + NIR (1.25 m), Sentinel-1 time series, Sentinel-2 time series.
 
-## 📝 Preliminary Note (August 2025)
-
-On 2025-08-19 the repository history was cleaned to remove large files.
-If you previously cloned the repo, please reclone to avoid conflicts.
-
 ## 🚀 Getting Started
 
 First, set up the module with [Poetry](https://python-poetry.org/).
@@ -117,6 +111,7 @@ Then, you can start from the following minimal examples.
 
 Intra-dataset MAESTRO on TreeSatAI-TS:
 ```bash
+# pre-train, probe and finetune on TreeSatAI-TS
 poetry run python main.py \
         model.model=mae model.model_size=medium \
         opt_pretrain.epochs=100 opt_probe.epochs=10 opt_finetune.epochs=50 \
@@ -127,6 +122,7 @@ poetry run python main.py \
 
 Intra-dataset MAESTRO on PASTIS-HD:
 ```bash
+# pre-train, probe and finetune on PASTIS-HD
 poetry run python main.py \
         model.model=mae model.model_size=medium \
         opt_pretrain.epochs=100 opt_probe.epochs=10 opt_finetune.epochs=50 \
@@ -137,6 +133,7 @@ poetry run python main.py \
 
 Intra-dataset MAESTRO on FLAIR-HUB:
 ```bash
+# pre-train, probe and finetune on FLAIR-HUB
 poetry run python main.py \
         model.model=mae model.model_size=medium \
         opt_pretrain.epochs=100 opt_probe.epochs=15 opt_finetune.epochs=100 \
@@ -147,24 +144,32 @@ poetry run python main.py \
 
 Cross-dataset MAESTRO from S2-NAIP urban to TreeSatAI-TS:
 ```bash
+# pre-train on S2-NAIP urban
 poetry run python main.py \
         model.model=mae model.model_size=medium \
         opt_pretrain.epochs=15 opt_probe.epochs=0 opt_finetune.epochs=0 \
         datasets.name_dataset=s2_naip \
         datasets.root_dir=/path/to/dataset/dir datasets.s2_naip.rel_dir=s2-naip-urban \
         run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_s2-naip && \
+# probe and finetune on TreeSatAI-TS
 poetry run python main.py \
         model.model=mae model.model_size=medium \
         opt_pretrain.epochs=0 opt_probe.epochs=10 opt_finetune.epochs=50 \
         datasets.name_dataset=treesatai_ts \
-        datasets.root_dir=/path/to/dataset/dir datasets.treesatai_ts.rel_dir=TreeSatAI-TS \
         datasets.treesatai_ts.aerial.image_size=240 datasets.treesatai_ts.aerial.patch_size.mae=16 \
         datasets.treesatai_ts.s1_asc.name_embed=s1 datasets.treesatai_ts.s1_des.name_embed=s1 \
+        datasets.root_dir=/path/to/dataset/dir datasets.treesatai_ts.rel_dir=TreeSatAI-TS \
         run.exp_dir=/path/to/experiments/dir run.load_name=mae-m_s2-naip run.exp_name=mae-m_s2-naip-x-treesat
 
 ```
 
 Most hyperparameters can be adapted through the hydra-zen CLI.
+
+
+## 📝 Note (August 2025)
+
+On 2025-08-19 the repository history was cleaned to remove large files.
+If you previously cloned the repo, please reclone to avoid conflicts.
 
 
 ## Contact

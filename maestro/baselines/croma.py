@@ -5,7 +5,6 @@ Model from https://papers.neurips.cc/paper_files/paper/2023/file/11822e84689e631
 
 import itertools
 import math
-import warnings
 from typing import Literal
 
 import torch
@@ -27,6 +26,7 @@ class CROMABaseline(BaseModule):
         freeze: bool = False,
         pretrained_path: str | None = None,
         type_head: Literal["linear", "attentive"] = "attentive",
+        interpolate: Literal["nearest", "bilinear", "bicubic"] = "nearest",
         fusion_mode: Literal["late-croma", "inter-croma"] = "inter-croma",
         add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
@@ -48,6 +48,8 @@ class CROMABaseline(BaseModule):
             Path to the location of the pretrained weights.
         type_head: str
             Segmentation head to use. Either "linear" or "attentive".
+        interpolate: str
+            Interpolation used in the image resizing before patchification.
         fusion_mode: str
             Fusion strategy. Either "late-croma" or "inter-croma".
         add_date_enc: bool
@@ -62,10 +64,11 @@ class CROMABaseline(BaseModule):
             Arguments to pass to `BaseModel` constructor.
 
         """
-        self.datasets = datasets
+        self.dataset = datasets.dataset
         self.backbone_size = backbone_size
         self.freeze = freeze
         self.type_head = type_head
+        self.interpolate = interpolate
         self.fusion_mode = fusion_mode
 
         self.pretrained_path = pretrained_path
@@ -89,12 +92,15 @@ class CROMABaseline(BaseModule):
                 msg = "Backbone's size should be `base` or `large`"
                 raise ValueError(msg)
 
+        self.image_size = self._check_image_size()
+
         super().__init__(
             datasets,
+            self.fusion_mode,
             self.patch_size,
             self.encoder_dim,
             self.type_head,
-            self.fusion_mode,
+            self.interpolate,
             self.add_date_enc,
             self.fac_date_enc,
             self.date_dim,
@@ -102,16 +108,13 @@ class CROMABaseline(BaseModule):
             **kwargs,
         )
 
-        self.image_size = self._check_image_size()
-
         self._build_backbone()
 
         if self.freeze:
             self.freeze_backbone()
 
         if self.fusion_mode == "inter-croma":
-            modalities = self.dataset.inputs.keys()
-            ref_mod = "s2" if "s2" in modalities else "s1_asc"
+            ref_mod = "s2" if "s2" in self.dataset.inputs else "s1_asc"
             self.num_dates["joint"] = self.num_dates[ref_mod]
             self.grid_size["joint"] = self.grid_size[ref_mod]
 
@@ -128,8 +131,11 @@ class CROMABaseline(BaseModule):
             raise NotImplementedError
 
         self.encoder = PretrainedCROMA(
+            encoder_dim=self.encoder_dim,
+            encoder_depth=self.encoder_depth,
+            num_heads=self.num_heads,
+            patch_size=self.patch_size,
             pretrained_path=self.pretrained_path,
-            size=self.backbone_size,
             modality=self.croma_modality,
             image_resolution=self.image_size,
         )
@@ -285,9 +291,9 @@ class CROMABaseline(BaseModule):
         output_croma = self.encoder(sar_images=sar_input, optical_images=optical_input)
 
         x_enc = {}
-        if self.croma_modality in ["both", "optical"]:
+        if self.croma_modality in ("both", "optical"):
             x_enc["s2"] = output_croma["optical_encodings"]
-        if self.croma_modality in ["both", "SAR"]:
+        if self.croma_modality in ("both", "SAR"):
             x_enc["s1_asc"], x_enc["s1_des"] = self._ungroup_s1(
                 output_croma["SAR_encodings"],
             )
@@ -310,28 +316,23 @@ class CROMABaseline(BaseModule):
 class PretrainedCROMA(nn.Module):
     """PretrainedCROMA class."""
 
-    def __init__(  # noqa: C901, PLR0912, PLR0915
+    def __init__(  # noqa: C901
         self,
-        pretrained_path: str = "CROMA_base.pt",
-        size: str = "base",
-        modality: str = "both",
-        image_resolution: int = 120,
+        encoder_dim: int,
+        encoder_depth: int,
+        num_heads: int,
+        patch_size: int,
+        pretrained_path: str | None,
+        modality: str,
+        image_resolution: int,
     ) -> None:
-        """Create the PretrainedCROMA model.
+        """Create the pretrained CROMA model.
 
         NOTE: image_resolution is not the spatial, spectral, or temporal resolution.
         It is the height and width of the image, in pixels. E.g., CROMA was pretrained
         on 120x120px images, hence image_resolution is 120 by default
         """
         super().__init__()
-        # check types
-        if not isinstance(pretrained_path, str):
-            msg = f"pretrained_path must be a string, not {type(pretrained_path)}"
-            raise TypeError(msg)
-
-        if not isinstance(size, str):
-            msg = f"size must be a string, not {type(size)}"
-            raise TypeError(msg)
 
         if not isinstance(modality, str):
             msg = f"modality must be a string, not {type(modality)}"
@@ -341,45 +342,21 @@ class PretrainedCROMA(nn.Module):
             msg = f"image_resolution must be an int, not {type(image_resolution)}"
             raise TypeError(msg)
 
-        # check values
-        if size not in ["base", "large"]:
-            msg = f"size must be either base or large, not {size}"
-            raise ValueError(msg)
-
         if image_resolution % 8 != 0:
             msg = f"image_resolution must be a multiple of 8, not {image_resolution}"
             raise ValueError(msg)
 
-        if modality not in ["both", "SAR", "optical"]:
+        if modality not in ("both", "SAR", "optical"):
             msg = f"modality must be either both, SAR, or optical, not {modality}"
             raise ValueError(msg)
 
-        # warn the user if the path contains a different size than the size parameter
-        if size == "base" and "large" in pretrained_path:
-            warnings.warn(
-                "The size is set to base, but 'large' appears in the pretrained path!",
-                stacklevel=2,
-            )
-        elif size == "large" and "base" in pretrained_path:
-            warnings.warn(
-                "The size is set to large, but 'base' appears in the pretrained path!",
-                stacklevel=2,
-            )
-
-        if size == "base":
-            self.encoder_dim = 768
-            self.encoder_depth = 12
-            self.num_heads = 16
-            self.patch_size = 8
-        else:
-            # large by default
-            self.encoder_dim = 1024
-            self.encoder_depth = 24
-            self.num_heads = 16
-            self.patch_size = 8
+        self.encoder_dim = encoder_dim
+        self.encoder_depth = encoder_depth
+        self.num_heads = num_heads
+        self.patch_size = patch_size
 
         self.modality = modality
-        self.num_patches = int((image_resolution / 8) ** 2)
+        self.num_patches = (image_resolution // 8) ** 2
         self.s1_channels = 2  # fixed at 2 SAR backscatter channels
         self.s2_channels = 12  # fixed at 12 multispectral optical channels
         self.attn_bias = get_2dalibi(
@@ -387,10 +364,10 @@ class PretrainedCROMA(nn.Module):
             num_patches=self.num_patches,
         )
 
-        if modality in ["SAR", "both"]:
+        if modality in ("SAR", "both"):
             self.s1_encoder = ViT(
                 dim=self.encoder_dim,
-                depth=int(self.encoder_depth / 2),
+                depth=self.encoder_depth // 2,
                 in_channels=self.s1_channels,
             )
 
@@ -398,17 +375,22 @@ class PretrainedCROMA(nn.Module):
                 nn.LayerNorm(self.encoder_dim),
                 nn.Linear(
                     self.encoder_dim,
-                    int(4 * self.encoder_dim),
+                    4 * self.encoder_dim,
                 ),  # (BSZ, inner_dim)
                 nn.GELU(),  # (BSZ, inner_dim)
-                nn.Linear(int(4 * self.encoder_dim), self.encoder_dim),  # (BSZ, dim)
+                nn.Linear(4 * self.encoder_dim, self.encoder_dim),  # (BSZ, dim)
             )
 
-            # load weights
-            self.s1_encoder.load_state_dict(torch.load(pretrained_path)["s1_encoder"])
-            self.GAP_FFN_s1.load_state_dict(torch.load(pretrained_path)["s1_GAP_FFN"])
+            if pretrained_path:
+                # load weights
+                self.s1_encoder.load_state_dict(
+                    torch.load(pretrained_path)["s1_encoder"],
+                )
+                self.GAP_FFN_s1.load_state_dict(
+                    torch.load(pretrained_path)["s1_GAP_FFN"],
+                )
 
-        if modality in ["optical", "both"]:
+        if modality in ("optical", "both"):
             self.s2_encoder = ViT(
                 dim=self.encoder_dim,
                 depth=self.encoder_depth,
@@ -418,27 +400,33 @@ class PretrainedCROMA(nn.Module):
                 nn.LayerNorm(self.encoder_dim),
                 nn.Linear(
                     self.encoder_dim,
-                    int(4 * self.encoder_dim),
+                    4 * self.encoder_dim,
                 ),  # (BSZ, inner_dim)
                 nn.GELU(),  # (BSZ, inner_dim)
-                nn.Linear(int(4 * self.encoder_dim), self.encoder_dim),  # (BSZ, dim)
+                nn.Linear(4 * self.encoder_dim, self.encoder_dim),  # (BSZ, dim)
             )
 
-            # load weights
-            self.s2_encoder.load_state_dict(torch.load(pretrained_path)["s2_encoder"])
-            self.GAP_FFN_s2.load_state_dict(torch.load(pretrained_path)["s2_GAP_FFN"])
+            if pretrained_path:
+                # load weights
+                self.s2_encoder.load_state_dict(
+                    torch.load(pretrained_path)["s2_encoder"],
+                )
+                self.GAP_FFN_s2.load_state_dict(
+                    torch.load(pretrained_path)["s2_GAP_FFN"],
+                )
 
         if modality == "both":
             self.cross_encoder = BaseTransformerCrossAttn(
                 dim=self.encoder_dim,
-                depth=int(self.encoder_depth / 2),
+                depth=self.encoder_depth // 2,
                 num_heads=self.num_heads,
             )
 
-            # load weights
-            self.cross_encoder.load_state_dict(
-                torch.load(pretrained_path)["joint_encoder"],
-            )
+            if pretrained_path:
+                # load weights
+                self.cross_encoder.load_state_dict(
+                    torch.load(pretrained_path)["joint_encoder"],
+                )
 
     def forward(
         self,
@@ -446,7 +434,7 @@ class PretrainedCROMA(nn.Module):
         optical_images: Tensor | None = None,
     ) -> dict[str, Tensor]:
         return_dict = {}
-        if self.modality in ["SAR", "both"]:
+        if self.modality in ("SAR", "both"):
             if sar_images is None:
                 msg = f"Modality is set to {self.modality}, but sar_images are None"
                 raise ValueError(msg)
@@ -459,7 +447,7 @@ class PretrainedCROMA(nn.Module):
             return_dict["SAR_encodings"] = sar_encodings
             return_dict["SAR_GAP"] = sar_gap
 
-        if self.modality in ["optical", "both"]:
+        if self.modality in ("optical", "both"):
             if optical_images is None:
                 msg = f"Modality is set to {self.modality}, but optical_images are None"
                 raise ValueError(msg)
@@ -493,8 +481,8 @@ def get_2dalibi(num_heads: int, num_patches: int) -> Tensor:
     """Inspired by: https://github.com/ofirpress/attention_with_linear_biases."""
     points = list(
         itertools.product(
-            range(int(math.sqrt(num_patches))),
-            range(int(math.sqrt(num_patches))),
+            range(int(num_patches**0.5)),
+            range(int(num_patches**0.5)),
         ),
     )
 
@@ -517,7 +505,7 @@ def get_2dalibi(num_heads: int, num_patches: int) -> Tensor:
     idxs = []
     for p1 in points:
         for p2 in points:
-            dist = math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+            dist = ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
             idxs.append(dist * slopes * -1)
     all_bias = torch.cat(idxs, dim=1)
     return all_bias.view(1, num_heads, num_patches, num_patches)
@@ -533,7 +521,7 @@ class FFN(nn.Module):
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
-        inner_dim = int(dim * mult)
+        inner_dim = dim * mult
 
         self.net = nn.Sequential(
             nn.Linear(dim, inner_dim),  # (BSZ, num_patches, inner_dim)
@@ -563,7 +551,7 @@ class Attention(nn.Module):
             msg = "dim must be evenly divisible by num_heads"
             raise ValueError(msg)
 
-        dim_head = int(dim / num_heads)
+        dim_head = dim // num_heads
         self.scale = dim_head**-0.5
 
         self.to_qkv = nn.Linear(dim, dim * 3, bias=False)
@@ -617,7 +605,7 @@ class CrossAttention(nn.Module):
             msg = "dim must be evenly divisible by num_heads"
             raise ValueError(msg)
 
-        dim_head = int(dim / num_heads)
+        dim_head = dim // num_heads
         self.scale = dim_head**-0.5
 
         self.to_q = nn.Linear(dim, dim, bias=False)
@@ -765,7 +753,7 @@ class ViT(nn.Module):
         self.num_heads = 16  # always 16, for base and large models
         self.patch_size = 8  # always 8, for base and large models
 
-        pixels_per_patch = int(self.patch_size * self.patch_size * in_channels)
+        pixels_per_patch = self.patch_size * self.patch_size * in_channels
         self.linear_input = nn.Linear(pixels_per_patch, self.dim)
         self.transformer = BaseTransformer(
             dim=self.dim,

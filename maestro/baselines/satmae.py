@@ -33,6 +33,7 @@ class SatMAEBaseline(BaseModule):
         freeze: bool = False,
         pretrained_path: str | None = None,
         type_head: Literal["linear", "attentive"] = "attentive",
+        interpolate: Literal["nearest", "bilinear", "bicubic"] = "nearest",
         fusion_mode: Literal["mod"] = "mod",
         add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
@@ -54,6 +55,8 @@ class SatMAEBaseline(BaseModule):
             Path to the location of the pretrained weights.
         type_head: str
             Segmentation head to use. Either "linear" or "attentive".
+        interpolate: str
+            Interpolation used in the image resizing before patchification.
         fusion_mode: str
             Fusion strategy. Necessarily "mod".
         add_date_enc: bool
@@ -68,10 +71,10 @@ class SatMAEBaseline(BaseModule):
             Arguments to pass to `BaseModel` constructor.
 
         """
-        self.datasets = datasets
         self.backbone_size = backbone_size
         self.freeze = freeze
         self.type_head = type_head
+        self.interpolate = interpolate
         self.fusion_mode = fusion_mode
 
         self.pretrained_path = pretrained_path
@@ -90,18 +93,6 @@ class SatMAEBaseline(BaseModule):
                 msg = "Backbone's size should be `base` or `large`"
                 raise ValueError(msg)
 
-        super().__init__(
-            self.datasets,
-            self.patch_size,
-            self.encoder_dim,
-            self.type_head,
-            self.fusion_mode,
-            self.add_date_enc,
-            self.fac_date_enc,
-            self.date_dim,
-            self.keep_norm,
-            **kwargs,
-        )
         self.std = 0.01
         bands = datasets.dataset.inputs["s2"].bands
         self.bands = (
@@ -111,6 +102,20 @@ class SatMAEBaseline(BaseModule):
         )
         self.num_channels = len(self.bands)
         self.image_size = datasets.dataset.inputs["s2"].image_size
+
+        super().__init__(
+            datasets,
+            self.fusion_mode,
+            self.patch_size,
+            self.encoder_dim,
+            self.type_head,
+            self.interpolate,
+            self.add_date_enc,
+            self.fac_date_enc,
+            self.date_dim,
+            self.keep_norm,
+            **kwargs,
+        )
 
         self._build_backbone(backbone_size)
         if pretrained_path is not None:

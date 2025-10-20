@@ -1,4 +1,4 @@
-"""Code adapted from Clay Foundation Model: https://github.com/Clay-foundation/model."""
+"""Baseline Lightning Module."""
 
 import copy
 from typing import Literal
@@ -24,10 +24,10 @@ class BaselineModule(BaseModule):
         # shared args
         datasets: DatasetsConfig,
         model: Literal["dinov2", "dofa", "croma", "prithvi", "satmae"],
-        interpolate: Literal["nearest", "bilinear", "bicubic"],
         fusion_mode: Literal["shared", "monotemp", "mod", "late-croma", "inter-croma"],
         model_size: Literal["small", "base", "large"],
         type_head: Literal["linear", "attentive"] = "attentive",
+        interpolate: Literal["nearest", "bilinear", "bicubic"] = "nearest",
         weight_source: str = "imagenat",
         pretrained_path: str | None = None,
         freeze: bool = False,
@@ -38,65 +38,48 @@ class BaselineModule(BaseModule):
     ) -> None:
         super().__init__(datasets)
 
+        model_args = {
+            "datasets": datasets,
+            "fusion_mode": fusion_mode,
+            "backbone_size": model_size,
+            "freeze": freeze,
+            "pretrained_path": pretrained_path,
+            "type_head": type_head,
+            "interpolate": interpolate,
+            "add_date_enc": add_date_enc,
+            "keep_norm": keep_norm,
+        }
         match model:
-            case "dinov2":
-                model_args = {
-                    "datasets": datasets,
-                    "interpolate": interpolate,
-                    "fusion_mode": fusion_mode,
-                    "backbone_size": model_size,
-                    "freeze": freeze,
-                    "pretrained_path": pretrained_path,
-                    "weight_source": weight_source,
-                    "type_head": type_head,
-                    "add_date_enc": add_date_enc,
-                    "keep_norm": keep_norm,
-                }
-
-                self.model = Dinov2Baseline(**model_args)
-            case "dofa" | "croma":
-                model_args = {
-                    "datasets": datasets,
-                    "interpolate": interpolate,
-                    "fusion_mode": fusion_mode,
-                    "backbone_size": model_size,
-                    "freeze": freeze,
-                    "pretrained_path": pretrained_path,
-                    "type_head": type_head,
-                    "add_date_enc": add_date_enc,
-                    "keep_norm": keep_norm,
-                }
-
-                model_dict = {"dofa": DOFABaseline, "croma": CROMABaseline}
-                self.model = model_dict[model](**model_args)
-            case "prithvi":
-                model_args = {
-                    "datasets": datasets,
-                    "backbone_size": model_size,
-                    "version": kwargs.get("version", "v2"),
-                    "freeze": freeze,
-                    "pretrained_path": pretrained_path,
-                    "type_head": type_head,
-                    "add_date_enc": add_date_enc,
-                    "keep_norm": keep_norm,
-                }
-
-                self.model = PrithviBaseline(**model_args)
-            case "satmae":
-                model_args = {
-                    "datasets": datasets,
-                    "backbone_size": model_size,
-                    "freeze": freeze,
-                    "pretrained_path": pretrained_path,
-                    "type_head": type_head,
-                    "fusion_mode": fusion_mode,
-                    "add_date_enc": add_date_enc,
-                    "keep_norm": keep_norm,
-                }
-                self.model = SatMAEBaseline(**model_args)
+            case "dinov2" | "dofa":
+                if fusion_mode not in ("shared", "monotemp"):
+                    msg = f"Fusion mode {fusion_mode} not supported with {model}."
+                    raise ValueError(msg)
+            case "croma":
+                if fusion_mode not in ("late-croma", "inter-croma"):
+                    msg = f"Fusion mode {fusion_mode} not supported with {model}."
+                    raise ValueError(msg)
+            case "satmae" | "prithvi":
+                if fusion_mode != "mod":
+                    msg = f"Fusion mode {fusion_mode} not supported with {model}."
+                    raise ValueError(msg)
             case _:
                 msg = f"Invalid model name {model}. Not implemented"
                 raise ValueError(msg)
+
+        match model:
+            case "dinov2":
+                model_args = {**model_args, "weight_source": weight_source}
+                self.model = Dinov2Baseline(**model_args)
+            case "dofa" | "croma" | "satmae":
+                model_dict = {
+                    "dofa": DOFABaseline,
+                    "croma": CROMABaseline,
+                    "satmae": SatMAEBaseline,
+                }
+                self.model = model_dict[model](**model_args)
+            case "prithvi":
+                model_args = {**model_args, "version": kwargs.get("version", "v2")}
+                self.model = PrithviBaseline(**model_args)
 
         if use_ema:
             self.ema_model = copy.deepcopy(self.model).to("cpu")

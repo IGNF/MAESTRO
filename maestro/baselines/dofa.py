@@ -29,6 +29,7 @@ class DOFABaseline(BaseModule, ABC):
         freeze: bool = False,
         pretrained_path: str | None = None,
         type_head: Literal["linear", "attentive"] = "attentive",
+        interpolate: Literal["nearest", "bilinear", "bicubic"] = "nearest",
         fusion_mode: Literal["shared", "monotemp"] = "shared",
         add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
@@ -50,6 +51,8 @@ class DOFABaseline(BaseModule, ABC):
             Path to the location of the pretrained weights.
         type_head: str
             Segmentation head to use. Either "linear" or "attentive".
+        interpolate: str
+            Interpolation used in the image resizing before patchification.
         fusion_mode: str
             Fusion strategy. Either "shared" or "monotemp".
         add_date_enc: bool
@@ -64,6 +67,8 @@ class DOFABaseline(BaseModule, ABC):
             Arguments to pass to `BaseModel` constructor.
 
         """
+        self.dataset = datasets.dataset
+        self.interpolate = interpolate
         self.backbone_size = backbone_size
         self.freeze = freeze
 
@@ -105,19 +110,6 @@ class DOFABaseline(BaseModule, ABC):
         self.keep_norm = keep_norm
         self.pretrain_image_size = 224
 
-        super().__init__(
-            datasets,
-            self.patch_size,
-            self.embed_dim,
-            self.type_head,
-            self.fusion_mode,
-            self.add_date_enc,
-            self.fac_date_enc,
-            self.date_dim,
-            self.keep_norm,
-            **kwargs,
-        )
-
         # layers
         self.wavelengths = {
             "aerial": [0.64, 0.56, 0.48, 0.81],
@@ -137,6 +129,20 @@ class DOFABaseline(BaseModule, ABC):
             "s1_asc": [5.405, 5.405],
             "s1_des": [5.405, 5.405],
         }
+
+        super().__init__(
+            datasets,
+            self.fusion_mode,
+            self.patch_size,
+            self.embed_dim,
+            self.type_head,
+            self.interpolate,
+            self.add_date_enc,
+            self.fac_date_enc,
+            self.date_dim,
+            self.keep_norm,
+            **kwargs,
+        )
 
         self._build_backbone()
 

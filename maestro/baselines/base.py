@@ -22,11 +22,11 @@ class BaseModule(Module, ABC):
     def __init__(
         self,
         datasets: DatasetsConfig,
-        interpolate: Literal["nearest", "bilinear", "bicubic"],
         fusion_mode: Literal["shared", "monotemp", "mod", "late-croma", "inter-croma"],
         patch_size: int,
         embed_dim: int,
         type_head: Literal["linear", "attentive"] = "attentive",
+        interpolate: Literal["nearest", "bilinear", "bicubic"] = "nearest",
         add_date_enc: bool = True,
         fac_date_enc: float = 1.0,
         date_dim: int = 8,

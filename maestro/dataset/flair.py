@@ -1,6 +1,5 @@
 """FLAIR dataset module."""
 
-import json
 from pathlib import Path
 from typing import Literal
 
@@ -124,7 +123,7 @@ class FLAIRDataset(GenericDataset):
 
         for name_mod in ("s2", "s1_asc", "s1_des"):
             meta[f"{name_mod}_dates"] = dict_datetimes(
-                json.loads(self.dates_dict[name_mod][zone_id]),
+                self.dates_dict[name_mod][zone_id],
                 start=1,
             )
 

@@ -343,6 +343,7 @@ class BaseMIM(nn.Module, ABC):
     def compute_logits(
         self,
         x_enc: dict[str, Tensor],
+        ssl_phase: Literal["pretrain", "probe", "finetune"],
     ) -> dict[str, Tensor]:
         """Compute logits."""
         x_enc = self.ungroup(x_enc)
@@ -383,12 +384,12 @@ class BaseMIM(nn.Module, ABC):
                 case "segment":
                     logits[name_target] = self.heads[name_target](
                         x_ref,
-                        ssl_phase="finetune",
+                        ssl_phase=ssl_phase,
                     )
                 case "multilabel_classif" | "classif":
                     logits[name_target] = self.heads[name_target](
                         x_enc,
-                        ssl_phase="finetune",
+                        ssl_phase=ssl_phase,
                     )
         return logits
 
@@ -500,5 +501,5 @@ class BaseMIM(nn.Module, ABC):
             return batch, pixels_rec, mask_rec, None
 
         # else, probe or finetune
-        logits = self.compute_logits(x_enc)
+        logits = self.compute_logits(x_enc, ssl_phase)
         return batch, None, None, logits

@@ -23,7 +23,7 @@ def load_config(
     load_root = Path(cfg.run.exp_dir) / load_name
     ckpt_path = sorted(
         str(ckpt_path)
-        for ckpt_path in load_root.rglob(f"*/checkpoints/{load_phase}-epoch=*.ckpt")
+        for ckpt_path in load_root.rglob(f"*checkpoints/{load_phase}-epoch=*.ckpt")
     ).pop()
     load_cfg_path = Path(ckpt_path).parent.parent / ".hydra" / "config_resolved.yaml"
     load_cfg = OmegaConf.load(load_cfg_path)

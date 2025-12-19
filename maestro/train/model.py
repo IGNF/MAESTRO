@@ -7,8 +7,8 @@ import torch
 from einops import rearrange
 from torch import Tensor
 
-from conf.datasets import DatasetsConfig
-from conf.mask import MaskConfig
+from maestro.conf.datasets import DatasetsConfig
+from maestro.conf.mask import MaskConfig
 from maestro.ssl.mae import mae_large, mae_medium, mae_small, mae_tiny
 from maestro.train.base import BaseModule
 

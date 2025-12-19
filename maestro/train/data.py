@@ -6,8 +6,8 @@ from typing import Literal
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 
-from conf.datasets import DatasetsConfig
-from conf.opt import OptFinetuneConfig, OptPretrainConfig, OptProbeConfig
+from maestro.conf.datasets import DatasetsConfig
+from maestro.conf.opt import OptFinetuneConfig, OptPretrainConfig, OptProbeConfig
 
 
 class SSLDataModule(LightningDataModule):

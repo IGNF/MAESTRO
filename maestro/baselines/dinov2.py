@@ -13,7 +13,7 @@ from torch.nn import LayerNorm, Module, ModuleDict
 from transformers import AutoConfig, Dinov2Config
 from transformers.models.dinov2.modeling_dinov2 import Dinov2Embeddings, Dinov2Encoder
 
-from conf.datasets import DatasetsConfig
+from maestro.conf.datasets import DatasetsConfig
 from maestro.baselines.base import BaseModule
 from maestro.baselines.utils import (
     filter_dict,

@@ -5,7 +5,7 @@ from typing import Literal
 
 import numpy as np
 
-from conf.dataset.utils import DatasetConfig
+from maestro.conf.dataset.utils import DatasetConfig
 from maestro.dataset.dataset import GenericDataset
 from maestro.dataset.utils import naip_datetimes, products_datetimes, read_csv
 

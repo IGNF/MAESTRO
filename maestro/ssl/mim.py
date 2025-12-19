@@ -10,8 +10,8 @@ import torch.nn.functional as F  # noqa: N812
 from einops import rearrange
 from torch import Tensor, nn
 
-from conf.dataset.utils import RasterConfig
-from conf.datasets import DatasetsConfig
+from maestro.conf.dataset.utils import RasterConfig
+from maestro.conf.datasets import DatasetsConfig
 from maestro.layers.embed import Patchify, Pixelify
 from maestro.layers.head import ClassificationHead, PixelifyHead
 from maestro.layers.utils import (

@@ -5,7 +5,7 @@ from typing import Literal
 
 import torch
 
-from conf.datasets import DatasetsConfig
+from maestro.conf.datasets import DatasetsConfig
 from maestro.baselines.croma import CROMABaseline
 from maestro.baselines.dinov2 import Dinov2Baseline
 from maestro.baselines.dofa import DOFABaseline

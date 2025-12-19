@@ -1,12 +1,12 @@
 import pytest
 
-from conf.dataset.flair import FLAIRConfig
-from conf.dataset.pastis_hd import PASTISHDConfig
-from conf.dataset.s2_naip import S2NAIPConfig
-from conf.dataset.treesatai_ts import TreeSatAITSConfig
-from conf.datasets import DatasetsConfig
-from conf.mask import MaskConfig
-from conf.opt import OptFinetuneConfig
+from maestro.conf.dataset.flair import FLAIRConfig
+from maestro.conf.dataset.pastis_hd import PASTISHDConfig
+from maestro.conf.dataset.s2_naip import S2NAIPConfig
+from maestro.conf.dataset.treesatai_ts import TreeSatAITSConfig
+from maestro.conf.datasets import DatasetsConfig
+from maestro.conf.mask import MaskConfig
+from maestro.conf.opt import OptFinetuneConfig
 from tests import TEST_DATA_DIR
 
 

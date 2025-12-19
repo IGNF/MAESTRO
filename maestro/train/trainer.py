@@ -12,8 +12,8 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.loggers.logger import Logger
 
-from conf.opt import OptFinetuneConfig, OptPretrainConfig, OptProbeConfig
-from conf.run import RunConfig
+from maestro.conf.opt import OptFinetuneConfig, OptPretrainConfig, OptProbeConfig
+from maestro.conf.run import RunConfig
 from maestro.hydra_utils import get_hydra_timestamp
 from maestro.train.logger import ImageLogger, MetricsLogger, TensorBoardLogger
 

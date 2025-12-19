@@ -7,8 +7,8 @@ from terratorch import BACKBONE_REGISTRY
 from torch import Tensor, nn
 from torch.nn import Module
 
-from conf.datasets import DatasetsConfig
 from maestro.baselines.base import BaseModule
+from maestro.conf.datasets import DatasetsConfig
 
 ORIG_BANDS = (0, 1, 2, 6, 8, 9)  # S2 bands included in original model
 

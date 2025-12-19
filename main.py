@@ -7,14 +7,14 @@ From the project root directory, run:
 
 from hydra_zen import store, zen
 
-import conf.data
-import conf.dataset
-import conf.experiment
-import conf.hydra_conf
-import conf.model
-import conf.opt
-import conf.run
-import conf.trainer  # noqa: F401
+import maestro.conf.data
+import maestro.conf.dataset
+import maestro.conf.experiment
+import maestro.conf.hydra_conf
+import maestro.conf.model
+import maestro.conf.opt
+import maestro.conf.run
+import maestro.conf.trainer  # noqa: F401
 from maestro.hydra_utils import pre_call_resolve, pre_call_seed
 from maestro.run_experiment import run_experiment
 

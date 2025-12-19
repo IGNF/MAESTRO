@@ -10,7 +10,7 @@ import rasterio
 from rasterio.windows import Window
 from torch.utils.data import Dataset
 
-from conf.dataset.utils import DatasetConfig
+from maestro.conf.dataset.utils import DatasetConfig
 
 
 class GenericDataset(Dataset, ABC):

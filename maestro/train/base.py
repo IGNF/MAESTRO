@@ -11,7 +11,7 @@ from pytorch_lightning import LightningModule
 from torch import Tensor, nn
 from torchmetrics import MeanMetric
 
-from conf.datasets import DatasetsConfig
+from maestro.conf.datasets import DatasetsConfig
 from maestro.layers.overlay import (
     create_overlay,
     onehot_pred_from_logits,

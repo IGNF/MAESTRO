@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from conf.dataset.utils import (
+from maestro.conf.dataset.utils import (
     DatasetConfig,
     InputRasterConfig,
     PatchSizeConfig,

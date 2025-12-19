@@ -5,12 +5,12 @@ from typing import Literal
 
 import torch
 
-from conf.datasets import DatasetsConfig
 from maestro.baselines.croma import CROMABaseline
 from maestro.baselines.dinov2 import Dinov2Baseline
 from maestro.baselines.dofa import DOFABaseline
 from maestro.baselines.prithvi import PrithviBaseline
 from maestro.baselines.satmae import SatMAEBaseline
+from maestro.conf.datasets import DatasetsConfig
 from maestro.train.base import BaseModule
 
 torch.set_float32_matmul_precision(precision="medium")

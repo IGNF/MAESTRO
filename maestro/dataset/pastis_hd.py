@@ -6,7 +6,7 @@ from typing import Literal
 import geopandas as gpd
 import numpy as np
 
-from conf.dataset.utils import DatasetConfig
+from maestro.conf.dataset.utils import DatasetConfig
 from maestro.dataset.dataset import GenericDataset
 from maestro.dataset.utils import dict_datetimes, read_csv, strs_datetimes
 

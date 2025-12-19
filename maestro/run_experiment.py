@@ -4,6 +4,7 @@ from functools import partial
 
 from clearml import Task
 
+from maestro import LOGGER
 from maestro.conf.data import DataConfig
 from maestro.conf.datasets import DatasetsConfig
 from maestro.conf.mask import MaskConfig
@@ -11,7 +12,6 @@ from maestro.conf.model import BaselineConfig, ModelConfig
 from maestro.conf.opt import OptFinetuneConfig, OptPretrainConfig, OptProbeConfig
 from maestro.conf.run import RunConfig
 from maestro.conf.trainer import TrainerConfig
-from maestro import LOGGER
 from maestro.train.baseline import BaselineModule
 from maestro.train.data import SSLDataModule
 from maestro.train.model import SSLModule

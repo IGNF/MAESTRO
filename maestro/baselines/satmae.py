@@ -14,10 +14,10 @@ import torch
 from timm.models.vision_transformer import Block, PatchEmbed
 from torch import Tensor, nn
 
-from maestro.conf.datasets import DatasetsConfig
 from maestro import LOGGER
 from maestro.baselines.base import BaseModule
 from maestro.baselines.utils import interpolate_pos_encoding
+from maestro.conf.datasets import DatasetsConfig
 
 BASE_IMAGE_SIZE = 224
 ORIG_BANDS = (0, 1, 2)  # S2 bands included in original model

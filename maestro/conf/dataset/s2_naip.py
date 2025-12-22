@@ -80,7 +80,6 @@ class S2NAIPConfig(DatasetConfig):  # noqa: D101
             norm_bands=[1, 1],
             num_dates=4,
             norm_fac=20.0,
-            name_group="sen1",
         ),
     )
 

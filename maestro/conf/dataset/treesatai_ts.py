@@ -59,7 +59,7 @@ class TreeSatAITSConfig(DatasetConfig):  # noqa: D101
             num_dates=4,
             norm_fac=5.0,
             log_scale=True,
-            name_group="sen1",
+            name_group="s1",
         ),
     )
     s1_des: InputRasterConfig = field(
@@ -71,7 +71,7 @@ class TreeSatAITSConfig(DatasetConfig):  # noqa: D101
             num_dates=4,
             norm_fac=5.0,
             log_scale=True,
-            name_group="sen1",
+            name_group="s1",
         ),
     )
 

@@ -3,11 +3,11 @@
 </h1>
 
 <p align="center">
-  <a href="https://wacv.thecvf.com/">
-    <img src="https://img.shields.io/badge/WACV-2026-blue">
-  </a>
   <a href="https://arxiv.org/abs/2508.10894">
     <img src="https://img.shields.io/badge/arXiv-2508.10894-b31b1b">
+  </a>
+  <a href="https://wacv.thecvf.com/">
+    <img src="https://img.shields.io/badge/WACV-2026-blue">
   </a>
   <a href="https://huggingface.co/collections/IGNF/maestro-models">
     <img src="https://img.shields.io/badge/🤗%20Models-HuggingFace-yellow">
@@ -16,7 +16,10 @@
     <img src="https://img.shields.io/badge/License-Apache%202.0-green">
   </a>
   <a href="https://pytorch.org/">
-    <img src="https://img.shields.io/badge/PyTorch-2.x-ee4c2c">
+    <img src="https://img.shields.io/badge/PyTorch-ee4c2c?logo=pytorch&logoColor=white">
+  </a>
+  <a href="https://pytorchlightning.ai/">
+    <img alt="Lightning" src="https://img.shields.io/badge/-Lightning-792ee5?logo=pytorchlightning&logoColor=white">
   </a>
 </p>
 

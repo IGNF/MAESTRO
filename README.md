@@ -1,27 +1,91 @@
-<h1 align="center"> MAESTRO: Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data <a href="https://arxiv.org/abs/2508.10894"><img src="https://img.shields.io/badge/arXiv-Paper-<color>"></a></h1>
+<h1 align="center">
+  MAESTRO: Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data
+</h1>
+
+<p align="center">
+  <a href="https://wacv.thecvf.com/">
+    <img src="https://img.shields.io/badge/WACV-2026-blue">
+  </a>
+  <a href="https://arxiv.org/abs/2508.10894">
+    <img src="https://img.shields.io/badge/arXiv-2508.10894-b31b1b">
+  </a>
+  <a href="https://huggingface.co/collections/IGNF/maestro-models">
+    <img src="https://img.shields.io/badge/🤗%20Models-HuggingFace-yellow">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-green">
+  </a>
+  <a href="https://pytorch.org/">
+    <img src="https://img.shields.io/badge/PyTorch-2.x-ee4c2c">
+  </a>
+</p>
+
 <h4 align="center">Official implementation for <a href="https://arxiv.org/abs/2508.10894">Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data</a></h4>
 <p align="center">
   <a href="#abstract">Abstract</a> |
-  <a href="#intra-dataset-evaluation">Results</a> |
   <a href="#datasets">Datasets</a> |
+  <a href="#intra-dataset-evaluation">Results</a> |
   <a href="#-getting-started">Getting Started</a>
 </p>
 
 
+## 📰 Update
+
+- **[2026-01]** 🚀 **Pre-trained MAESTRO models released on HuggingFace**
+  - [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) — pre-trained on FLAIR-HUB
+  - [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base) — pre-trained on S2-NAIP-urban
+
+- **[2025-11]** 🎉 **MAESTRO accepted at WACV 2026**
+
 
 ## Abstract
 
-We introduce **MAESTRO**, a tailored adaptation of the Masked Autoencoder (MAE) framework that effectively orchestrates the use of multimodal, multitemporal, and multispectral Earth Observation (EO) data. Evaluated on four EO datasets, MAESTRO sets a new state-of-the-art on tasks that strongly rely on multitemporal dynamics, while remaining highly competitive on tasks dominated by a single monotemporal modality.
+**MAESTRO** is a tailored adaptation of the Masked Autoencoder (MAE) that effectively orchestrates the use of multimodal, multitemporal, and multispectral Earth Observation (EO) data. Evaluated on four EO datasets, MAESTRO sets a new state-of-the-art on tasks that strongly rely on multitemporal dynamics, while remaining competitive on tasks dominated by a single monotemporal modality.
 
-Our contributions are as follows:
+MAESTRO's contributions are as follows:
 - **Extensive benchmarking of multimodal and multitemporal SSL:** Impact evaluation of various fusion strategies for multimodal and multitemporal SSL.
 - **Patch-group-wise normalization:** Novel normalization scheme that normalizes reconstruction targets patch-wise within groups of highly correlated spectral bands.
-- **MAESTRO:** Novel adaptation of the MAE that combines optimized fusion strategies with our tailored patch-group-wise normalization.
+- **MAESTRO:** Novel adaptation of the MAE that combines optimized fusion strategies with patch-group-wise normalization.
 
 <p align="center">
   <img src="media/Maestro_Overview.png" alt="MAESTRO Overview" width="750"/><br>
   <em>Figure 1 — MAESTRO overview.</em>
 </p>
+
+
+## Datasets
+Our implementation already supports 5 datasets.
+
+**[TreeSatAI-TS](https://huggingface.co/datasets/IGNF/TreeSatAI-Time-Series)** <br />
+Tree species identification in Germany, with 15 multi-label classes.
+  - Extent: 50,381 tiles of 60 × 60 m, covering 181 km².
+  - Modalities: aerial imagery RGB + NIR (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
+  - [Dataset split](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits/TreeSatAI-TS)
+
+**[PASTIS-HD](https://huggingface.co/datasets/IGNF/PASTIS-HD)** <br/>
+Agricultural crop segmentation in France, with 19 semantic classes.
+  - Extent: 433 tiles of 1280 × 1280 m, covering 709 km².
+  - Modalities: VHR satellite imagery SPOT 6-7 (1 m), Sentinel-1 time series, Sentinel-2 time series.
+  - [Dataset split](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits/PASTIS-HD)
+
+**[FLAIR#2](https://arxiv.org/abs/2305.14467)** <br/>
+Land cover segmentation in France, with 12 semantic classes. Note that the FLAIR#2 version used here is not the original release, but a regenerated version obtained by refiltering FLAIR-HUB.
+  - Extent: 77,762 tiles of 102.4 × 102.4 m, covering 815 km².
+  - Modalities: Aerial and elevation imagery RGB + NIR + DEM + DSM (0.2 m), Sentinel-2 time series.
+  - [Dataset split](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits/FLAIR-HUB)
+
+**[FLAIR-HUB](https://huggingface.co/datasets/IGNF/FLAIR-HUB)** <br/>
+Land cover segmentation in France, with 15 semantic classes.
+  - Extent: 241,100 tiles of 102.4 × 102.4 m, covering 2,528 km².
+  - Modalities: Aerial and elevation imagery RGB + NIR + DEM +
+DSM (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
+  - [Dataset split](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits/FLAIR-HUB)
+
+**[S2-NAIP urban](https://huggingface.co/datasets/allenai/s2-naip)** <br/>
+Super-resolution in urban areas of the United States. To construct this urban subset, the original S2-NAIP footprints are intersected with the urban set defined in [Zooming-in zooming-out](https://github.com/allenai/satlas-super-resolution), which is limited to locations within a 5 km radius of U.S. cities with populations of at least 50,000.
+  - Extent: 167,397 tiles of size 640 m × 640 m, covering 68,565 km².
+  - Modalities: Aerial NAIP imagery RGB + NIR (1.25 m), Sentinel-1 time series, Sentinel-2 time series.
+  - [Dataset split](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits/s2-naip-urban)
 
 
 ## Intra-dataset Evaluation
@@ -63,41 +127,9 @@ Our contributions are as follows:
 </p>
 
 
-
-
-
-## Datasets
-Our implementation already supports 5 datasets.
-
-**[TreeSatAI-TS](https://huggingface.co/datasets/IGNF/TreeSatAI-Time-Series)**<br />
-Tree species identification in Germany, with 15 multi-label classes.
-  - Extent: 50,381 tiles of 60 × 60 m, covering 181 km².
-  - Modalities: aerial imagery RGB + NIR (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
-
-**[PASTIS-HD](https://huggingface.co/datasets/IGNF/PASTIS-HD)**<br />
-Agricultural crop segmentation in France, with 19 semantic classes.
-  - Extent: 433 tiles of 1280 × 1280 m, covering 709 km².
-  - Modalities: VHR satellite imagery SPOT 6-7 (1 m), Sentinel-1 time series, Sentinel-2 time series.
-
-**[FLAIR#2](https://arxiv.org/abs/2305.14467)**<br />
-Land cover segmentation in France, with 12 semantic classes. Note that the FLAIR#2 version used here is not the original release, but a regenerated version obtained by refiltering FLAIR-HUB.
-  - Extent: 77,762 tiles of 102.4 × 102.4 m, covering 815 km².
-  - Modalities: Aerial and elevation imagery RGB + NIR + DEM + DSM (0.2 m), Sentinel-2 time series.
-
-**[FLAIR-HUB](https://huggingface.co/datasets/IGNF/FLAIR-HUB)**<br />
-Land cover segmentation in France, with 15 semantic classes.
-  - Extent: 241,100 tiles of 102.4 × 102.4 m, covering 2,528 km².
-  - Modalities: Aerial and elevation imagery RGB + NIR + DEM +
-DSM (0.2 m), Sentinel-1 time series, Sentinel-2 time series.
-
-**[S2-NAIP urban](https://huggingface.co/datasets/allenai/s2-naip)**<br />
-Super-resolution in urban areas of the United States. To construct this urban subset, the original S2-NAIP footprints are intersected with the urban set defined in [Zooming-in zooming-out](https://github.com/allenai/satlas-super-resolution), which is limited to locations within a 5 km radius of U.S. cities with populations of at least 50,000.
-  - Extent: 167,397 tiles of size 640 m × 640 m, covering 68,565 km².
-  - Modalities: Aerial NAIP imagery RGB + NIR (1.25 m), Sentinel-1 time series, Sentinel-2 time series.
-
 ## 🚀 Getting Started
 
-First, set up the module with [Poetry](https://python-poetry.org/).
+The module is set up with [Poetry](https://python-poetry.org/):
 
 ```bash
 # 1. Change directory
@@ -107,7 +139,21 @@ cd MAESTRO
 poetry install
 ```
 
-Then, you can start from the following minimal examples.
+### Starting from Pre-trained Models
+
+Prerequisites:
+- Fetch [Dataset splits](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits) and move them to each dataset directory
+- Fetch pre-trained weights and configuration as detailed in the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base)
+
+Then you can start from the example commands provided in the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base).
+
+
+### Starting from Scratch
+
+Prerequisites:
+- Fetch [Dataset splits](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits) and move them to each dataset directory
+
+Then you can start from the following minimal examples.
 
 Intra-dataset MAESTRO on TreeSatAI-TS:
 ```bash
@@ -117,7 +163,7 @@ poetry run python main.py \
         opt_pretrain.epochs=100 opt_probe.epochs=10 opt_finetune.epochs=50 \
         datasets.name_dataset=treesatai_ts \
         datasets.root_dir=/path/to/dataset/dir datasets.treesatai_ts.rel_dir=TreeSatAI-TS \
-        run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_treesat
+        run.exp_dir=/path/to/experiments/dir run.exp_name=MAESTRO_TSAI-TS_base
 ```
 
 Intra-dataset MAESTRO on PASTIS-HD:
@@ -128,7 +174,7 @@ poetry run python main.py \
         opt_pretrain.epochs=100 opt_probe.epochs=10 opt_finetune.epochs=50 \
         datasets.name_dataset=pastis_hd \
         datasets.root_dir=/path/to/dataset/dir datasets.pastis_hd.rel_dir=PASTIS-HD \
-        run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_pastis
+        run.exp_dir=/path/to/experiments/dir run.exp_name=MAESTRO_PASTIS-HD_base
 ```
 
 Intra-dataset MAESTRO on FLAIR-HUB:
@@ -139,7 +185,7 @@ poetry run python main.py \
         opt_pretrain.epochs=100 opt_probe.epochs=15 opt_finetune.epochs=100 \
         datasets.name_dataset=flair \
         datasets.root_dir=/path/to/dataset/dir datasets.flair.rel_dir=FLAIR-HUB \
-        run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_flair
+        run.exp_dir=/path/to/experiments/dir run.exp_name=MAESTRO_FLAIR-HUB_base
 ```
 
 Cross-dataset MAESTRO from S2-NAIP urban to TreeSatAI-TS:
@@ -150,7 +196,7 @@ poetry run python main.py \
         opt_pretrain.epochs=15 opt_probe.epochs=0 opt_finetune.epochs=0 \
         datasets.name_dataset=s2_naip \
         datasets.root_dir=/path/to/dataset/dir datasets.s2_naip.rel_dir=s2-naip-urban \
-        run.exp_dir=/path/to/experiments/dir run.exp_name=mae-m_s2-naip && \
+        run.exp_dir=/path/to/experiments/dir run.exp_name=MAESTRO_S2-NAIP-urban_base && \
 # probe and finetune on TreeSatAI-TS
 poetry run python main.py \
         model.model=mae model.model_size=medium \
@@ -159,22 +205,16 @@ poetry run python main.py \
         datasets.treesatai_ts.aerial.image_size=240 datasets.treesatai_ts.aerial.patch_size.mae=16 \
         datasets.treesatai_ts.s1_asc.name_embed=s1 datasets.treesatai_ts.s1_des.name_embed=s1 \
         datasets.root_dir=/path/to/dataset/dir datasets.treesatai_ts.rel_dir=TreeSatAI-TS \
-        run.exp_dir=/path/to/experiments/dir run.load_name=mae-m_s2-naip run.exp_name=mae-m_s2-naip-x-treesat
+        run.exp_dir=/path/to/experiments/dir run.load_name=MAESTRO_S2-NAIP-urban_base run.exp_name=MAESTRO_S2-NAIP-urban-x-TSAI-TS_base
 
 ```
 
-Most hyperparameters can be adapted through the hydra-zen CLI.
 
-
-## 📝 Note (August 2025)
+## 📝 Note (2025-08)
 
 On 2025-08-19 the repository history was cleaned to remove large files.
 If you previously cloned the repo, please reclone to avoid conflicts.
 
-
-## Contact
-
-For questions or contributions, please open an issue or contact the authors.
 
 
 ## Reference
@@ -192,4 +232,4 @@ If you use this code, please cite:
 
 ## Acknowledgement
 
-The experiments in the paper were conducted using HPC/AI resources from GENCI-IDRIS (allocations A0181013803, A0161013803, and AD010114597R1).
+The experiments in the paper were conducted using HPC/AI resources from GENCI-IDRIS (allocations A0181013803, A0161013803, AD010114597R1, and AD011014690R1).

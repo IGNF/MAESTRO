@@ -9,28 +9,28 @@
 </p>
 
 
+## 📰 Update
+
+- **[2026-01]** 🚀 **Pre-trained MAESTRO models released on HuggingFace**
+  - [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) — pre-trained on FLAIR-HUB
+  - [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base) — pre-trained on S2-NAIP-urban
+
+- **[2025-11]** 🎓 **MAESTRO accepted at WACV 2026**
+
 
 ## Abstract
 
-**MAESTRO** is a tailored adaptation of the Masked Autoencoder (MAE) framework that effectively orchestrates the use of multimodal, multitemporal, and multispectral Earth Observation (EO) data. Evaluated on four EO datasets, MAESTRO sets a new state-of-the-art on tasks that strongly rely on multitemporal dynamics, while remaining highly competitive on tasks dominated by a single monotemporal modality.
+**MAESTRO** is a tailored adaptation of the Masked Autoencoder (MAE) that effectively orchestrates the use of multimodal, multitemporal, and multispectral Earth Observation (EO) data. Evaluated on four EO datasets, MAESTRO sets a new state-of-the-art on tasks that strongly rely on multitemporal dynamics, while remaining competitive on tasks dominated by a single monotemporal modality.
 
 MAESTRO's contributions are as follows:
 - **Extensive benchmarking of multimodal and multitemporal SSL:** Impact evaluation of various fusion strategies for multimodal and multitemporal SSL.
 - **Patch-group-wise normalization:** Novel normalization scheme that normalizes reconstruction targets patch-wise within groups of highly correlated spectral bands.
-- **MAESTRO:** Novel adaptation of the MAE that combines optimized fusion strategies with our tailored patch-group-wise normalization..
+- **MAESTRO:** Novel adaptation of the MAE that combines optimized fusion strategies with patch-group-wise normalization.
 
 <p align="center">
   <img src="media/Maestro_Overview.png" alt="MAESTRO Overview" width="750"/><br>
   <em>Figure 1 — MAESTRO overview.</em>
 </p>
-
-
-## ⚖️ Pre-trained Models
-
-We have released two pre-trained MAESTRO models on Hugging Face. Detailed instructions for reusing these models are provided in the corresponding model cards:
-- [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) is pre-trained on FLAIR-HUB.
-- [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base) is pre-trained on S2-NAIP-urban.
-
 
 
 ## Datasets
@@ -72,7 +72,7 @@ Super-resolution in urban areas of the United States. To construct this urban su
 
 <p align="center">
   <em>
-    Table 1 — Intra-dataset comparison of MAESTRO, supervised ViTs, and previous SOTA.<br>
+    Table 1 — Intra-dataset evaluation of MAESTRO, supervised ViTs, and previous SOTA.<br>
     We report wF1 (%) on TreeSatAI-TS and mIoU (%) on PASTIS-HD, FLAIR#2, and FLAIR-HUB.<br>
     MAESTRO† models are pre-trained for twice the number of epochs.
   </em>
@@ -90,7 +90,7 @@ Super-resolution in urban areas of the United States. To construct this urban su
 
 <p align="center">
   <em>
-    Table 2 — Cross-dataset comparison of MAESTRO and adapted baseline FMs. The baseline FMs are adapted to handle an arbitrary number of dates and/or to retain all modality bands. <br>
+    Table 2 — Cross-dataset evaluation of MAESTRO and adapted baseline FMs. The baseline FMs are adapted to handle an arbitrary number of dates and/or to retain all modality bands. <br>
     We report wF1 (%) on TreeSatAI-TS and mIoU (%) on PASTIS-HD, FLAIR#2, and FLAIR-HUB.<br>
   </em>
 
@@ -107,14 +107,7 @@ Super-resolution in urban areas of the United States. To construct this urban su
 </p>
 
 
-
-
 ## 🚀 Getting Started
-
-Prerequisites:
-- Fetch [Dataset splits](dataset_splits) and move them to each dataset directory
-- If re-using pre-trained weights, fetch model weights and configuration as detailed in the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base).
-
 
 The module is setup with [Poetry](https://python-poetry.org/):
 
@@ -126,8 +119,21 @@ cd MAESTRO
 poetry install
 ```
 
+### Starting from Pre-trained Models
 
-If re-using pre-trained weights, example commands are available on the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base). Otherwise, you can start from the minimal examples below.
+Prerequisites:
+- Fetch [Dataset splits](dataset_splits) and move them to each dataset directory
+- Fetch model weights and configuration as detailed in the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base).
+
+Then you can start from the example commands provided on the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base).
+
+
+### Starting from Scratch
+
+Prerequisites:
+- Fetch [Dataset splits](dataset_splits) and move them to each dataset directory
+
+Then you can start from the minimal examples below.
 
 Intra-dataset MAESTRO on TreeSatAI-TS:
 ```bash
@@ -183,18 +189,12 @@ poetry run python main.py \
 
 ```
 
-Most hyperparameters can be adapted through the hydra-zen CLI.
 
-
-## 📝 Note (August 2025)
+## 📝 Note (2025-08)
 
 On 2025-08-19 the repository history was cleaned to remove large files.
 If you previously cloned the repo, please reclone to avoid conflicts.
 
-
-## Contact
-
-For questions or contributions, please open an issue or contact the authors.
 
 
 ## Reference

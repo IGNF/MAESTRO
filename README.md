@@ -1,8 +1,28 @@
-<h1 align="center"> MAESTRO: Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data <a href="https://arxiv.org/abs/2508.10894"><img src="https://img.shields.io/badge/arXiv-Paper-<color>"></a></h1>
+<h1 align="center">
+  MAESTRO: Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data
+</h1>
+
+<p align="center">
+  <a href="https://wacv.thecvf.com/">
+    <img src="https://img.shields.io/badge/WACV-2026-blue">
+  </a>
+  <a href="https://arxiv.org/abs/2508.10894">
+    <img src="https://img.shields.io/badge/arXiv-2508.10894-b31b1b">
+  </a>
+  <a href="https://huggingface.co/collections/IGNF/maestro-models">
+    <img src="https://img.shields.io/badge/🤗%20Models-HuggingFace-yellow">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-green">
+  </a>
+  <a href="https://pytorch.org/">
+    <img src="https://img.shields.io/badge/PyTorch-2.x-ee4c2c">
+  </a>
+</p>
+
 <h4 align="center">Official implementation for <a href="https://arxiv.org/abs/2508.10894">Masked Autoencoders for Multimodal, Multitemporal, and Multispectral Earth Observation Data</a></h4>
 <p align="center">
   <a href="#abstract">Abstract</a> |
-  <a href="#%EF%B8%8F-pre-trained-models">Pre-trained Models</a> |
   <a href="#datasets">Datasets</a> |
   <a href="#intra-dataset-evaluation">Results</a> |
   <a href="#-getting-started">Getting Started</a>
@@ -15,7 +35,7 @@
   - [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) — pre-trained on FLAIR-HUB
   - [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base) — pre-trained on S2-NAIP-urban
 
-- **[2025-11]** 🎓 **MAESTRO accepted at WACV 2026**
+- **[2025-11]** 🎉 **MAESTRO accepted at WACV 2026**
 
 
 ## Abstract
@@ -72,7 +92,7 @@ Super-resolution in urban areas of the United States. To construct this urban su
 
 <p align="center">
   <em>
-    Table 1 — Intra-dataset evaluation of MAESTRO, supervised ViTs, and previous SOTA.<br>
+    Table 1 — Intra-dataset comparison of MAESTRO, supervised ViTs, and previous SOTA.<br>
     We report wF1 (%) on TreeSatAI-TS and mIoU (%) on PASTIS-HD, FLAIR#2, and FLAIR-HUB.<br>
     MAESTRO† models are pre-trained for twice the number of epochs.
   </em>
@@ -90,7 +110,7 @@ Super-resolution in urban areas of the United States. To construct this urban su
 
 <p align="center">
   <em>
-    Table 2 — Cross-dataset evaluation of MAESTRO and adapted baseline FMs. The baseline FMs are adapted to handle an arbitrary number of dates and/or to retain all modality bands. <br>
+    Table 2 — Cross-dataset comparison of MAESTRO and adapted baseline FMs. The baseline FMs are adapted to handle an arbitrary number of dates and/or to retain all modality bands. <br>
     We report wF1 (%) on TreeSatAI-TS and mIoU (%) on PASTIS-HD, FLAIR#2, and FLAIR-HUB.<br>
   </em>
 
@@ -109,7 +129,7 @@ Super-resolution in urban areas of the United States. To construct this urban su
 
 ## 🚀 Getting Started
 
-The module is setup with [Poetry](https://python-poetry.org/):
+The module is set up with [Poetry](https://python-poetry.org/):
 
 ```bash
 # 1. Change directory
@@ -122,18 +142,18 @@ poetry install
 ### Starting from Pre-trained Models
 
 Prerequisites:
-- Fetch [Dataset splits](dataset_splits) and move them to each dataset directory
-- Fetch model weights and configuration as detailed in the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base).
+- Fetch [Dataset splits](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits) and move them to each dataset directory
+- Fetch pre-trained weights and configuration as detailed in the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base)
 
-Then you can start from the example commands provided on the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base).
+Then you can start from the example commands provided in the models cards for [MAESTRO_FLAIR-HUB_base](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base) and [MAESTRO_S2-NAIP-urban_base](https://huggingface.co/IGNF/MAESTRO_S2-NAIP-urban_base).
 
 
 ### Starting from Scratch
 
 Prerequisites:
-- Fetch [Dataset splits](dataset_splits) and move them to each dataset directory
+- Fetch [Dataset splits](https://huggingface.co/IGNF/MAESTRO_FLAIR-HUB_base/tree/main/dataset_splits) and move them to each dataset directory
 
-Then you can start from the minimal examples below.
+Then you can start from the following minimal examples.
 
 Intra-dataset MAESTRO on TreeSatAI-TS:
 ```bash
